@@ -27,7 +27,7 @@ const int intLED = 2; // D4
 
 
 LedStripeCtl led_stipe_L = LedStripeCtl(RedLED_L, GreenLED_L, BlueLED_L, PWM_DUTY_CYCLE);
-//LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
+LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
 
 
 //=======================================================================
@@ -112,10 +112,10 @@ void setup()
   led_stipe_L.AddTransition(0, 255, 0, 0, 0, 255, 8000);
   led_stipe_L.AddTransition(0, 0, 255, 0, 0, 0, 8000);
 
-  //led_stipe_R.AddTransition(0, 0, 0, 255, 0, 0, 2000);
-  //led_stipe_R.AddTransition(0, 0, 0, 0, 255, 0, 2000);
-  //led_stipe_R.AddTransition(0, 0, 0, 0, 0, 255, 2000);
-  //led_stipe_R.AddTransition(0, 0, 0, 0, 0, 0, 2000);
+  led_stipe_R.AddTransition(255, 127, 0, 127, 0, 127, 2000);
+  led_stipe_R.AddTransition(127, 0, 127, 0, 127, 255, 2000);
+  led_stipe_R.AddTransition(0, 127, 255, 127, 255, 127, 2000);
+  led_stipe_R.AddTransition(127, 255, 127, 255, 127, 0, 2000);
 }
 //=======================================================================
 //                    LOOP
@@ -123,7 +123,7 @@ void setup()
 void loop()
 {
   //server.handleClient();
-  delay(200);
+  delay(50);
   led_stipe_L.Update();
-  //led_stipe_R.Update();
+  led_stipe_R.Update();
 }

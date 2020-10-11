@@ -61,18 +61,18 @@ public:
 
     uint16_t GetDuty_R(void)
     {
-        return (uint16_t)((r / step_multipler)  * COLOR_RANGE);
+        return (uint16_t)(r / step_multipler);
         
     }
 
     uint16_t GetDuty_G(void)
     {
-        return (uint16_t)((g / step_multipler)  * COLOR_RANGE);
+        return (uint16_t)(g / step_multipler);
     }
 
     uint16_t GetDuty_B(void)
     {
-        return (uint16_t)((b / step_multipler)  * COLOR_RANGE);
+        return (uint16_t)(b / step_multipler);
     }
 
 protected:
@@ -134,37 +134,22 @@ public:
         // recalculate duty step / ms
         if(trans_time > 0)
         {
-            trans_step_r = (target.r - current.r) / trans_time;
-            trans_step_g = (target.g - current.g) / trans_time;
-            trans_step_b = (target.b - current.b) / trans_time;
+            trans_step_r = (int)(target.r - current.r) / (int)trans_time;
+            trans_step_g = (int)(target.g - current.g) / (int)trans_time;
+            trans_step_b = (int)(target.b - current.b) /(int) trans_time;
         }
         
         in_trans = true;    // unlock updating in case it was locked
 
-        Serial.printf("Setup: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, a_time_ms);
-        Serial.printf("Setup: steps r:%u, g:%u, b:%u\r\n", trans_step_r, trans_step_g, trans_step_b);
+        Serial.printf("Setup: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
+        Serial.printf("Setup: steps r:%d g:%d, b:%d\r\n", trans_step_r, trans_step_g, trans_step_b);
     }
 
     void Reset(void) 
     {
         current = initial;
         elapsed_time = 0;
-    }
-
-    void SetTargetColor(LedStripeState a_target_state, uint32_t a_trans_time)
-    {
-        target = a_target_state;
-        trans_time = a_trans_time;
-        // recalculate duty step / ms
-
-        if(trans_time > 0)
-        {
-            trans_step_r = (target.r - current.r) / trans_time;
-            trans_step_g = (target.g - current.g) / trans_time;
-            trans_step_b = (target.b - current.b) / trans_time;
-        }
-
-        in_trans = true;    // unlock updating in case it was locked
+        //Serial.printf("Reset: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
     }
 
     uint16_t GetCurrent_R(void)
@@ -200,10 +185,9 @@ public:
             current.r += delta * trans_step_r;
             current.g += delta * trans_step_g;
             current.b += delta * trans_step_b;
-            Serial.printf("UPDATE: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  elapsed_time = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, elapsed_time);
+            //Serial.printf("UPDATE: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  elapsed_time = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, elapsed_time);
             if(elapsed_time > trans_time)
             {
-                Reset();
                 //Serial.printf("elapsed_time switching: elapsed_time = %u > trans_time = %u\r\n", elapsed_time, trans_time);
                 return true;
             }
@@ -343,7 +327,7 @@ public:
         if(current_transition)
         {          
             trans_done = current_transition->Update(call_time_delta);
-            Serial.printf("[%u|%u|%u] ", current_transition->GetCurrent_R(), current_transition->GetCurrent_G(), current_transition->GetCurrent_B());
+            //Serial.printf("[%u|%u|%u] ", current_transition->GetCurrent_R(), current_transition->GetCurrent_G(), current_transition->GetCurrent_B());
             analogWrite(pin_r, current_transition->GetCurrent_R());
             analogWrite(pin_g, current_transition->GetCurrent_G());
             analogWrite(pin_b, current_transition->GetCurrent_B());
@@ -351,6 +335,8 @@ public:
 
             if(trans_done)  // when transition has 0 time this should never happen
             {
+                current_transition->Reset();
+                //Serial.printf(">>>>> switching %p -> %p\r\n", current_transition, current_transition->next);
                 current_transition = current_transition->next;
             }
         }
