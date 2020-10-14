@@ -28,8 +28,13 @@ const int intLED = 2; // D4
 
 LedStripeCtl led_stipe_L = LedStripeCtl(RedLED_L, GreenLED_L, BlueLED_L, PWM_DUTY_CYCLE);
 LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
+Ticker timer_leds = Ticker();
 
-
+void TickUpdateStipes(void)
+{
+  led_stipe_L.Update();
+  led_stipe_R.Update();
+}
 //=======================================================================
 //                    handles main page
 //=======================================================================
@@ -107,15 +112,20 @@ void setup()
   //Serial.println("HTTP server started");
 
   Serial.println("setting up sample transitions...)");
-  led_stipe_L.AddTransition(0, 0, 0, 255, 0, 0, 8000);
-  led_stipe_L.AddTransition(255, 0, 0, 0, 255, 0, 8000);
-  led_stipe_L.AddTransition(0, 255, 0, 0, 0, 255, 8000);
-  led_stipe_L.AddTransition(0, 0, 255, 0, 0, 0, 8000);
+  //led_stipe_L.AddTransition(  0,   0,   0,  /*->*/  255,   0,   0, 255);
+  //led_stipe_L.AddTransition(255,   0,   0,  /*->*/    0, 255,   0, 255);
+  //led_stipe_L.AddTransition(  0, 255,   0,  /*->*/    0,   0, 255, 255);
+  //led_stipe_L.AddTransition(    0,   0,   0,  /*->*/    0,   0,   255, 0);
 
-  led_stipe_R.AddTransition(255, 127, 0, 127, 0, 127, 2000);
-  led_stipe_R.AddTransition(127, 0, 127, 0, 127, 255, 2000);
-  led_stipe_R.AddTransition(0, 127, 255, 127, 255, 127, 2000);
-  led_stipe_R.AddTransition(127, 255, 127, 255, 127, 0, 2000);
+  led_stipe_L.SetColor(255, 255, 255);
+
+  led_stipe_R.AddTransition(255, 127,   0,  /*->*/   127,   0, 127, 1000);
+  led_stipe_R.AddTransition(127,   0, 127,  /*->*/     0, 127, 255, 1000);
+  led_stipe_R.AddTransition(  0, 127, 255,  /*->*/   127, 255, 127, 1000);
+  led_stipe_R.AddTransition(127, 255, 127,  /*->*/   255, 127,   0, 1000);
+
+  // attach timer to call led update
+  timer_leds.attach_ms(25, TickUpdateStipes);
 }
 //=======================================================================
 //                    LOOP
@@ -123,7 +133,4 @@ void setup()
 void loop()
 {
   //server.handleClient();
-  delay(50);
-  led_stipe_L.Update();
-  led_stipe_R.Update();
 }
