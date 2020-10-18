@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Multi-page template</title>
+    <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+    <link rel="stylesheet" href="css/common.css">
+	<link rel="shortcut icon" href="favicon.ico">
+	<script src="js/jquery.js"></script>
+    <script src="js/jquery.mobile-1.4.5.min.js"></script>
+    <script src="js/colorpicker.min.js"></script>
+    <script src="js/ledstripe.js"></script>
+</head>
+<body>
+
+
+<!-- ------------------------------------------- COLOR PICKER --------------------------------------  -->
+<div data-role="page" id="color-picker">
+
+	<div data-role="header">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#color-picker" data-icon="grid" data-transition="flow" class="ui-btn-active">Color Picker</a></li>
+                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
+                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
+            </ul>
+        </div><!-- /navbar -->
+    </div><!-- /header -->
+    
+	<div role="main" class="ui-content">
+        <h2 class="ui-bar ui-bar-a ui-corner-all center-wrapper">Color picker</h2>
+        <div class="ui-body ui-body-a ui-corner-all center-wrapper">
+            <canvas id="color_picker_canvas"></canvas>
+            <div data-role="controlgroup" data-type="horizontal">
+                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="left_stripe_color">
+                    <div class="input-mini-color" name="base_color"></div>
+                </div>
+                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="right_stripe_color">
+                    <div class="input-mini-color" name="base_color"></div>
+                </div>
+            </div>	
+
+            <input type="button" onclick="savedColors.add(event.target)" data-inline="true" value="Save">
+        </div>
+	</div><!-- /content -->
+
+	<div data-role="footer" data-theme="a">
+		<h4>Page Footer</h4>
+	</div><!-- /footer -->
+</div><!-- /page one -->
+
+
+<!-- ------------------------------------------- SAVED COLORS --------------------------------------  -->
+<div data-role="page" id="saved-colors" data-theme="a">
+
+	<div data-role="header">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
+                <li><a href="#saved-colors" data-icon="star" data-transition="flow" class="ui-btn-active">Saved Colors</a></li>
+                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
+            </ul>
+        </div><!-- /navbar -->
+		<h1>Your Saved Colors</h1>
+	</div><!-- /header -->
+
+	<div role="main" class="ui-content">
+		<h2>Two</h2>
+	</div><!-- /content -->
+
+	<div data-role="footer">
+		<h4>Page Footer</h4>
+	</div><!-- /footer -->
+</div><!-- /page two -->
+
+
+<!-- ------------------------------------------- TRANSITION SETS --------------------------------------  -->
+<div data-role="page" id="transition-sets" data-theme="a">
+
+	<div data-role="header">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
+                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
+                <li><a href="#transition-sets" data-icon="clock" data-transition="flow" class="ui-btn-active">Transition Sets</a></li>
+                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
+            </ul>
+        </div>
+		<h1>Your Transition Sets</h1>
+	</div><!-- /header -->
+
+	<div role="main" class="ui-content">
+		<h2>Two</h2>
+	</div><!-- /content -->
+
+	<div data-role="footer">
+		<h4>Page Footer</h4>
+	</div><!-- /footer -->
+</div><!-- /page two -->
+
+
+<!-- ------------------------------------------- SETTING --------------------------------------  -->
+<div data-role="page" id="settings" data-theme="a">
+
+	<div data-role="header">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
+                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
+                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+                <li><a href="#settings" data-icon="gear" data-transition="flow" class="ui-btn-active">Settings</a></li>
+            </ul>
+        </div>
+		<h1>Settings</h1>
+	</div><!-- /header -->
+
+	<div role="main" class="ui-content">
+		<h2>Two</h2>
+	</div><!-- /content -->
+
+	<div data-role="footer">
+		<h4>Page Footer</h4>
+	</div><!-- /footer -->
+</div><!-- /page two -->
+
+
+<!-- ------------------------------------------- CONFIRM POPUP --------------------------------------  -->
+<div data-role="page" id="popup">
+
+	<div data-role="header" data-theme="b">
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
+                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
+                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
+            </ul>
+        </div><!-- /navbar -->
+		<h1>Confirmation</h1>
+	</div><!-- /header -->
+
+	<div role="main" class="ui-content">
+		<h2>Popup</h2>
+	</div><!-- /content -->
+
+	<div data-role="footer">
+		<h4>Page Footer</h4>
+	</div><!-- /footer -->
+</div><!-- /page popup -->
+
+</body>
+</html>

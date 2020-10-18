@@ -1,0 +1,33 @@
+[LittleFS] data    : D:\NodeMCU\nodemcu_ledstripe\ledstripe\data
+[LittleFS] size    : 3048
+[LittleFS] page    : 256
+[LittleFS] block   : 8192
+/ledstripeui.html
+[LittleFS] upload  : C:\Users\onir\AppData\Local\Temp\arduino_build_857663/ledstripe.mklittlefs.bin
+[LittleFS] address : 0x100000
+[LittleFS] reset   : --before default_reset --after hard_reset
+[LittleFS] port    : COM4
+[LittleFS] speed   : 921600
+[LittleFS] python   : C:\Users\onir\AppData\Local\Arduino15\packages\esp8266\tools\python3\3.7.2-post1\python3.exe
+[LittleFS] uploader : C:\Users\onir\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.6.3\tools\upload.py
+
+esptool.py v2.8
+Serial port COM4
+Connecting....
+Chip is ESP8266EX
+Features: WiFi
+Crystal is 26MHz
+MAC: f4:cf:a2:c8:87:19
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Auto-detected Flash size: 4MB
+Compressed 3121152 bytes to 13221...
+Wrote 3121152 bytes (13221 compressed) at 0x00100000 in 0.3 seconds (effective 83974.8 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
