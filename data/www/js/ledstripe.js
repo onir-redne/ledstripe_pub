@@ -1,5 +1,8 @@
 var picker = null;
-
+var updateTimer = null;
+$(function(){
+    $( "[data-role='header'], [data-role='footer']" ).toolbar();
+});
 
 window.onload = function() {
     // create
@@ -20,14 +23,9 @@ window.onload = function() {
     
                 var rgbCurrent = self.getCurColorRgb();
                 var hsvCurrent = self.getCurColorHsv();
-                self.selectedInput.value = self.getCurColorHex();    
-                self.selectedInput.style.background = self.selectedInput.value;
-                var baseColorRgb = HSVtoRGB(hsvCurrent.h, 1.0, 1.0);
-                self.selectedInput.children.base_color.style.background = rgbToHex(baseColorRgb.r, baseColorRgb.g, baseColorRgb.b);
-                //.getCurColorRgb() - return current color in RGB format. Return array {r : var, g : var, b : var};
-                
+                var baseColorRgb = HSVtoRGB(hsvCurrent.h, hsvCurrent.s, 1.0);      
+                self.selectedInput.style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";          
 
-                // call ajax update color
                 var led_stripe = 0;
                 if (self.selectedInput.id == 'left_stripe_color') {
                     led_stripe = 0;
@@ -49,7 +47,7 @@ window.onload = function() {
         }
     });
 
-    picker.getWheel().width = 50;
+    picker.getWheel().width = 40;
     picker.getSvFigCursor().radius = 35;
     picker.getSvFig().radius = 25;
     picker.getWheelCursor().height = 30;
@@ -62,7 +60,7 @@ window.onload = function() {
     
         if (picker.selectedInput) {
             picker.selectedInput.classList.remove('selected');
-            picker.selectedInput.children.base_color.classList.remove('selected');
+            //picker.selectedInput.children.base_color.classList.remove('selected');
         }
 
         if (target) 
@@ -71,7 +69,7 @@ window.onload = function() {
             return false;
         
         picker.selectedInput.classList.add('selected');
-        picker.selectedInput.children.base_color.classList.add('selected');
+        //picker.selectedInput.children.base_color.classList.add('selected');
         picker.setColor(picker.selectedInput.value);
     }
     
@@ -80,29 +78,66 @@ window.onload = function() {
     for (var i = 0; i < mInputs.length; i++) {
         picker.editInput(mInputs[i]);
     }
+
+    // set led status updat timer to 10s.
+    updateTimer = setInterval(ajaxGetLestripesState, 1000);
 }
 
 
 var savedColors = {
-    add : function(sender) {
+    add : function(sender, rgb_color, hsv_color, name) {
         var rgbCurrent = picker.getCurColorRgb();
-        $.ajax({
-            'url' : '/ajax/savedcolors_add',
-            'type' : 'GET',
-            'data' : {
-                'r' : rgbCurrent.r,
-                'g' : rgbCurrent.g,
-                'b' : rgbCurrent.b
-            }
-        });
+        var hsvCurrent = picker.getCurColorHsv();
+        $.getJSON('/ajax/savedcolors_add', {
+            'r' : rgb_color.r,
+            'g' : rgb_color.g,
+            'b' : rgb_color.b,
+            'h': hsv_color.h,
+            's': hsv_color.s,
+            'v': hsv_color.v,
+            'name': name},
+            function(response) {
+                            
+            });
     }
+
 }
+
 
 /**
  * get leds state and update cotent acordingy..
  */
 function ajaxGetLestripesState() {
+    $.getJSON('/ajax/getstripesstate', function(jsondata) {
 
+        $('#power_off_timer').val((jsondata.timer / 60).toFixed(1));
+        $('#power_off_timer').slider( "refresh" );
+        if(jsondata.power == 1) {
+            if($("#power_sw option:selected").val() != 'on')
+                $('#power_sw').val("on").change();
+        } else {
+            if($("#power_sw option:selected").val() != 'off')
+                $('#power_sw').val("off").change();
+        }      
+     });
+}
+
+function ajaxSetLedstripesPower(self) {
+    if(self.value == 'on') {
+        $.ajax({'url' : '/ajax/poweron'});
+    } else {
+        $.ajax({'url' : '/ajax/poweroff'});
+    }
+}
+
+function ajaxSetLedstripesPowerTimer(self) {
+    $.ajax({
+        'url' : '/ajax/powertimer',
+        'type' : 'GET',
+        'data' : {
+            'timer' : self.value * 60
+        }
+    });
 }
 
 /* ---------------------------------------------------

@@ -26,6 +26,7 @@ const char content_css[]  = "text/css; charset=UTF-8";
 const char content_js[]  = "text/javascript; charset=UTF-8";
 const char content_plain[] = "text/plain";
 const char content_ico[] = "image/vnd.microsoft.icon";
+const char content_json[] = "application/json";
 ESP8266WebServer server(80);
 
 ////////////////////////////////////////
@@ -41,8 +42,12 @@ const int intLED = 2; // D4
 LedStripeCtl led_stipe_L = LedStripeCtl(RedLED_L, GreenLED_L, BlueLED_L, PWM_DUTY_CYCLE);
 LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
 LedStripeCtl * led_stripes[] = {&led_stipe_L, &led_stipe_R};
-
 Ticker timer_leds = Ticker();
+
+bool led_power = false;
+uint16_t power_off_timer = 0;
+
+Ticker timer_clock = Ticker();
 
 ////////////////////////////////////////
 // global led updater
@@ -50,6 +55,22 @@ void TickUpdateStipes(void)
 {
   led_stipe_L.Update();
   led_stipe_R.Update();
+}
+
+////////////////////////////////////////
+// internal clock
+void TickClock(void)
+{
+  if(power_off_timer)
+  {
+    power_off_timer--;
+    if(power_off_timer == 0)
+    {
+      led_power = !led_power;
+      for(LedStripeCtl * sctl : led_stripes) 
+        sctl->SetPower(led_power);
+    }
+  }
 }
 
 ////////////////////////////////////////
@@ -120,26 +141,29 @@ void WebAjaxSetColorHandler(void)
 
 void WebAjaxGetStripesStateHandler(void)
 {
-  char json_buffer[sizeof(led_stripes) * JSON_STRIPE_STATE_MAX] = {0};
+  char json_buffer[sizeof(led_stripes) * JSON_STRIPE_STATE_MAX + 32] = {0};
   int8_t i = 0;
   uint16_t offset = 0;
-  char state = 'c';
+  const char * state = nullptr;
+  Serial.printf("AJAX: %s", server.uri().c_str());
 
-  json_buffer[0] = '[';
-  offset++;
+  offset += sprintf(json_buffer + offset, "{\"power\":%d,\"timer\":%u, \"strp\":[", led_power, power_off_timer);
+
   for(LedStripeCtl * sctl : led_stripes) 
   {
     LedStripeState &cc = sctl->GetColorState();
     uint8_t r = cc.GetColor_R();
     uint8_t g = cc.GetColor_G();
     uint8_t b = cc.GetColor_B();
-    if(sctl->ActiveTransitions())
-    offset += sprintf(json_buffer + offset, "{\"l\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"s\":\"%c\"},", i, r, g, b, state);
+    state = sctl->GetStateStr();
+    offset += sprintf(json_buffer + offset, "{\"stripe\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"state\":\"%s\"},", i, r, g, b, state);
   }
   json_buffer[offset-1] = ']';
+  json_buffer[offset] = '}';
   offset++;
 
-  server.send(200, content_plain, json_buffer);
+  server.send(200, content_json, json_buffer);
+  Serial.print(json_buffer);
   Serial.println(" - 200");
   return;
 }
@@ -153,6 +177,39 @@ void WebAjaxSavedColorsAdd(void)
 
   server.send(500, content_plain, "Internal error");
   Serial.println(" - 500");
+}
+
+void WebAjaxPowerOffHandler(void)
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  led_power = false;
+  for(LedStripeCtl * sctl : led_stripes) 
+    sctl->SetPower(led_power);
+
+  server.send(200, content_plain);
+  Serial.println(" - 200");
+}
+
+void WebAjaxPowerOnHandler(void)
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  led_power = true;
+  for(LedStripeCtl * sctl : led_stripes) 
+    sctl->SetPower(led_power);
+
+  server.send(200, content_plain);
+  Serial.println(" - 200");
+}
+
+void WebAjaxPowerTimerHandler(void)
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  power_off_timer = atoi(server.arg("timer").c_str());
+  if(power_off_timer > POWER_TIMER_MAX)
+    power_off_timer = POWER_TIMER_MAX;
+    
+  server.send(200, content_plain);
+  Serial.println(" - 200");
 }
 
 //////////////////////////////////////
@@ -216,8 +273,9 @@ void setup()
   //server.on("/ajax/getconfig", WebAjaxSetColorHandler);   // return configuration
   //server.on("/ajax/saveconfig", WebAjaxSetColorHandler);  // save configuration (try to cache it to limit flash writes)
   //server.on("/ajax/reset", WebAjaxSetColorHandler);       // reboot device
-  //server.on("/ajax/poweroff", WebAjaxSetColorHandler);    // turn off
-  //server.on("/ajax/poweron", WebAjaxSetColorHandler);     // turn on
+  server.on("/ajax/poweroff", WebAjaxPowerOffHandler);    // turn off
+  server.on("/ajax/poweron", WebAjaxPowerOnHandler);     // turn on
+    server.on("/ajax/powertimer", WebAjaxPowerTimerHandler);     // turn on
   //server.on("/ajax/selecttranset", WebAjaxSetColorHandler); // set transition-set 
   //server.on("/ajax/setransition", WebAjaxSetColorHandler);  // set single transition
   server.onNotFound(WebRootHandler);  // handle all uri's but ajax
@@ -255,6 +313,8 @@ void setup()
 
   // attach timer to call led update
   timer_leds.attach_ms(25, TickUpdateStipes);
+  // attach interna clock timer
+  timer_clock.attach_ms(1000, TickClock);
 }
 
 

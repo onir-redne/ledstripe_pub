@@ -26,7 +26,8 @@ public:
         transitions(nullptr),
         current_transition(nullptr),
         duty_cycle(a_duty_cycle),
-        color_set(false)
+        color_set(false),
+        power(false)
         {
             pinMode(pin_r, OUTPUT);
             pinMode(pin_g, OUTPUT);
@@ -99,6 +100,39 @@ public:
         return (transitions) ? true : false;
     }
 
+    void PowerOff(void) 
+    {
+        analogWrite(pin_r, 0);
+        analogWrite(pin_g, 0);
+        analogWrite(pin_b, 0);
+        power = false;
+    }
+
+    void PowerOn(void) 
+    {
+        power = true;
+        color_set = false;
+    }
+
+    void SetPower(bool power)
+    {
+        if(power)
+            PowerOn();
+        else
+            PowerOff();        
+    }
+
+    const char * GetStateStr(void)
+    {
+        if(!power)
+            return JSON_STRIPE_OFF;
+
+        if(transitions)
+            return JSON_STRIPE_TRNASITION;
+
+        return JSON_STRIPE_STATIC_COLOR;
+    }
+
     // return reference to static color
     LedStripeState & GetColorState(void) { return color; }
 
@@ -138,6 +172,9 @@ public:
 
     void Update(void)
     {
+
+        if(!power)  // stipe off
+            return;
 
         if(current_transition)
         {    
@@ -185,6 +222,7 @@ protected:
     LedStripeTrans transitions_buffer[MAX_STRIPE_TRANSITIONS];
     LedStripeState color;
     bool color_set;
+    bool power;
 };
 
 #endif

@@ -14,142 +14,79 @@
     <script src="js/ledstripe.js"></script>
 </head>
 <body>
+<div data-role="header" data-theme="a" data-position="fixed">
+    <div data-role="navbar">
+        <ul>
+            <li><a href="#color-picker" data-icon="grid" data-transition="flow" class="ui-btn-active">Color Picker</a></li>
+            <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
+            <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+            <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
+        </ul>
+    </div><!-- /navbar -->
+</div><!-- /header -->
 
+<div data-role="footer" data-theme="a" data-position="fixed">
+    <div class="center-wrapper">
+        <select onchange="ajaxSetLedstripesPower(event.target)" id="power_sw" name="power_sw" data-role="slider">
+            <option value="off">Off</option>
+            <option value="on">On</option>
+        </select>
+        <!--label for="power_off_timer">power off timer</label-->
+        <input onchange="ajaxSetLedstripesPowerTimer(event.target)" type="range" name="power_off_timer" id="power_off_timer" min="0" max="120" value="0" data-show-value="true" data-popup-enabled="true">
+    </div>
+</div><!-- /footer -->
 
 <!-- ------------------------------------------- COLOR PICKER --------------------------------------  -->
-<div data-role="page" id="color-picker">
-
-	<div data-role="header">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#color-picker" data-icon="grid" data-transition="flow" class="ui-btn-active">Color Picker</a></li>
-                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
-                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
-                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
-            </ul>
-        </div><!-- /navbar -->
-    </div><!-- /header -->
-    
+<div data-role="page" id="color-picker" data-title="Color Picker">
 	<div role="main" class="ui-content">
         <h2 class="ui-bar ui-bar-a ui-corner-all center-wrapper">Color picker</h2>
         <div class="ui-body ui-body-a ui-corner-all center-wrapper">
             <canvas id="color_picker_canvas"></canvas>
             <div data-role="controlgroup" data-type="horizontal">
-                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="left_stripe_color">
-                    <div class="input-mini-color" name="base_color"></div>
-                </div>
-                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="right_stripe_color">
-                    <div class="input-mini-color" name="base_color"></div>
-                </div>
+                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="left_stripe_color"></div>
+                <div onclick="picker.editInput(event.target)" onchange="picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" id="right_stripe_color"></div>
             </div>	
-
-            <input type="button" onclick="savedColors.add(event.target)" data-inline="true" value="Save">
         </div>
 	</div><!-- /content -->
-
-	<div data-role="footer" data-theme="a">
-		<h4>Page Footer</h4>
-	</div><!-- /footer -->
 </div><!-- /page one -->
 
 
 <!-- ------------------------------------------- SAVED COLORS --------------------------------------  -->
-<div data-role="page" id="saved-colors" data-theme="a">
-
-	<div data-role="header">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
-                <li><a href="#saved-colors" data-icon="star" data-transition="flow" class="ui-btn-active">Saved Colors</a></li>
-                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
-                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
-            </ul>
-        </div><!-- /navbar -->
-		<h1>Your Saved Colors</h1>
-	</div><!-- /header -->
-
+<div data-role="page" id="saved-colors" data-theme="a" data-title="Saved Colors">
 	<div role="main" class="ui-content">
-		<h2>Two</h2>
+        <ul data-role="listview" data-inset="true" id="saved_colors">
+            <li><a href="#" style="background: linear-gradient(90deg, rgba(2,0,36,1) 19%, rgba(9,9,121,1) 40%, rgba(0,212,255,1) 100%);">Acura</a></li>
+            <li><a href="#">Audi</a></li>
+            <li><a href="#">BMW</a></li>
+            <li><a href="#">Cadillac</a></li>
+            <li><a href="#">Ferrari</a></li>
+        </ul>
+        <div id="saved_colors"></div>
 	</div><!-- /content -->
-
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /footer -->
 </div><!-- /page two -->
 
 
 <!-- ------------------------------------------- TRANSITION SETS --------------------------------------  -->
-<div data-role="page" id="transition-sets" data-theme="a">
-
-	<div data-role="header">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
-                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
-                <li><a href="#transition-sets" data-icon="clock" data-transition="flow" class="ui-btn-active">Transition Sets</a></li>
-                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
-            </ul>
-        </div>
-		<h1>Your Transition Sets</h1>
-	</div><!-- /header -->
-
+<div data-role="page" id="transition-sets" data-theme="a" data-title="Transition Sets">
 	<div role="main" class="ui-content">
-		<h2>Two</h2>
+		
 	</div><!-- /content -->
-
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /footer -->
 </div><!-- /page two -->
 
 
 <!-- ------------------------------------------- SETTING --------------------------------------  -->
-<div data-role="page" id="settings" data-theme="a">
-
-	<div data-role="header">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
-                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
-                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
-                <li><a href="#settings" data-icon="gear" data-transition="flow" class="ui-btn-active">Settings</a></li>
-            </ul>
-        </div>
-		<h1>Settings</h1>
-	</div><!-- /header -->
-
+<div data-role="page" id="settings" data-theme="a"  data-title="Settings">
 	<div role="main" class="ui-content">
 		<h2>Two</h2>
 	</div><!-- /content -->
-
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /footer -->
 </div><!-- /page two -->
 
 
 <!-- ------------------------------------------- CONFIRM POPUP --------------------------------------  -->
 <div data-role="page" id="popup">
-
-	<div data-role="header" data-theme="b">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#color-picker" data-icon="grid" data-transition="flow">Color Picker</a></li>
-                <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
-                <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
-                <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
-            </ul>
-        </div><!-- /navbar -->
-		<h1>Confirmation</h1>
-	</div><!-- /header -->
-
 	<div role="main" class="ui-content">
 		<h2>Popup</h2>
 	</div><!-- /content -->
-
-	<div data-role="footer">
-		<h4>Page Footer</h4>
-	</div><!-- /footer -->
 </div><!-- /page popup -->
 
 </body>

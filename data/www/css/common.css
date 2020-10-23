@@ -6,35 +6,27 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: center;
-    margin: 0 auto;
+    margin: 0px;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
 .input-quad {
-    width : 56px;
+    width : 74px;
     height : 56px;
     display : inline-block;
 }
 
-.input-mini-color {
-    width : 56px;
-    height : 28px;
-    padding: 0px;
-    vertical-align: bottom;
-    background-color: blue;
-    display : inline-block;
-}
-
 .input-quad.selected {
-    height : 64px;
-    width : 72px;
-}
-
-.input-mini-color.selected {
-    width : 64px;
-    height : 31px;
+    height : 72px;
+    width : 84px;
 }
 
 .ui-btn.wide120 {
     width : 120px;
+}
+
+.ui-slider-input {
+    display : none !important;
 }
 
