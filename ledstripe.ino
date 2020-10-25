@@ -1,7 +1,10 @@
-/*
- * IoT ESP8266 Based Mood Lamp (RGB LED) Controller Program
- * https://circuits4you.com
- */
+/**
+ * @author Dominik Pająk (onir) <onir.redne@mdrk.net>
+ * @copyright 2020 Dominik Pająk
+ * @license GPLv3
+ * 
+ * 
+ */ 
  
 #include <inttypes.h>
 #include  <cstring>
@@ -13,6 +16,7 @@
 #include "LittleFS.h"
 #include "ledstripestate.h"
 #include "ledstripectl.h"
+#include "savedcolors.h"
 
 ////////////////////////////////////////
 //SSID and Password of your WiFi router
@@ -43,9 +47,11 @@ LedStripeCtl led_stipe_L = LedStripeCtl(RedLED_L, GreenLED_L, BlueLED_L, PWM_DUT
 LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
 LedStripeCtl * led_stripes[] = {&led_stipe_L, &led_stipe_R};
 Ticker timer_leds = Ticker();
+SavedColors saved_colors = SavedColors("");
 
 bool led_power = false;
 uint16_t power_off_timer = 0;
+uint16_t color_peek_timer = 0;
 
 Ticker timer_clock = Ticker();
 
@@ -69,6 +75,17 @@ void TickClock(void)
       led_power = !led_power;
       for(LedStripeCtl * sctl : led_stripes) 
         sctl->SetPower(led_power);
+    }
+  }
+
+  // automatically swich back to base color or transfer after peek
+  if(color_peek_timer)
+  {
+    color_peek_timer--;
+    if(power_off_timer == 0)
+    {
+      for(LedStripeCtl * sctl : led_stripes) 
+        sctl->Switch2BaseColor();
     }
   }
 }
@@ -118,7 +135,40 @@ void WebRootHandler(void)
   }
 }
 
-// ajax
+
+////////////////////////////////////////////////
+// AJAX Set color
+void WebAjaxPeekColorHandler()
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  int r = atoi(server.arg("r").c_str());
+  int g = atoi(server.arg("g").c_str());
+  int b = atoi(server.arg("b").c_str());
+
+  for(LedStripeCtl * sctl : led_stripes) 
+  {
+    sctl->Switch2PeekColor();
+    sctl->SetColor(r, g, b);
+  }
+
+  server.send(200, content_plain);
+  Serial.println(" - 200");
+  color_peek_timer = DEFAULT_PEEK_COLOR_TOUT; // set timeout to restore default
+}
+
+void WebAjaxUnsetPeekColorHandler()
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  for(LedStripeCtl * sctl : led_stripes) 
+  {
+    sctl->Switch2BaseColor();
+  }
+  color_peek_timer = 0; // disable timeout
+
+  server.send(200, content_plain);
+  Serial.println(" - 200");
+}
+
 void WebAjaxSetColorHandler(void)
 {
   Serial.printf("AJAX: %s", server.uri().c_str());
@@ -139,6 +189,9 @@ void WebAjaxSetColorHandler(void)
   Serial.println(" - 500");
 }
 
+
+////////////////////////////////////////////////
+// AJAX Read general status (stripes and timers)
 void WebAjaxGetStripesStateHandler(void)
 {
   char json_buffer[sizeof(led_stripes) * JSON_STRIPE_STATE_MAX + 32] = {0};
@@ -165,20 +218,69 @@ void WebAjaxGetStripesStateHandler(void)
   server.send(200, content_json, json_buffer);
   Serial.print(json_buffer);
   Serial.println(" - 200");
-  return;
 }
 
-void WebAjaxSavedColorsAdd(void)
+
+////////////////////////////////////////////////
+// AJAX Manage favorite colors
+void WebAjaxSavedColorsSet(void)
 {
   Serial.printf("AJAX: %s", server.uri().c_str());
-  int r = atoi(server.arg("r").c_str());
-  int g = atoi(server.arg("g").c_str());
-  int b = atoi(server.arg("b").c_str());
+  uint8_t r = atoi(server.arg("r").c_str());
+  uint8_t g = atoi(server.arg("g").c_str());
+  uint8_t b = atoi(server.arg("b").c_str());
 
-  server.send(500, content_plain, "Internal error");
-  Serial.println(" - 500");
+  if(server.arg("id").length() > 0)
+  {
+    uint8_t id = atoi(server.arg("id").c_str());
+    saved_colors.SetColor(id, r, g, b, server.arg("name").c_str());
+  }
+  else
+  {
+    saved_colors.AddColor(r, g, b, server.arg("name").c_str());
+  }
+  server.send(200, content_plain);
+  Serial.println(" - 200");
 }
 
+void WebAjaxSavedColorsGet(void)
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  char json_buffer[JSON_SAVED_COLOR_ENTRY * MAX_SAVED_COLORS] = {0};
+  uint16_t offset = 0;
+  uint8_t r = 0, g = 0, b = 0, set = 0, id = 0, cfree = 0, cmax = 0;
+  char name [COLOR_NAME_LEN] = {0};
+  cfree = saved_colors.GetFreeColorsCount();
+  cmax = saved_colors.GetColorsCount();
+
+  Serial.printf("AJAX: %s", server.uri().c_str());
+
+  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,colors: [", cmax, cfree);
+  while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
+  {
+    name[0] = 0;
+    offset += sprintf(json_buffer + offset, "{\"id\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"set\":%u,\"name\":\"%s\"},", id, r, g, b, set, name);
+  }
+
+  if(cmax - cfree > 0)
+    json_buffer[offset - 1] = ']}';
+  else
+    json_buffer[offset] = ']}';
+  
+  offset++;
+
+  server.send(200, content_json, json_buffer);
+  Serial.print(json_buffer);
+  Serial.println(" - 200");
+}
+
+void WebAjaxSavedColorsDel(void)
+{
+
+}
+
+////////////////////////////////////////////////
+// AJAX Power
 void WebAjaxPowerOffHandler(void)
 {
   Serial.printf("AJAX: %s", server.uri().c_str());
@@ -211,6 +313,7 @@ void WebAjaxPowerTimerHandler(void)
   server.send(200, content_plain);
   Serial.println(" - 200");
 }
+
 
 //////////////////////////////////////
 // Setup
@@ -262,14 +365,18 @@ void setup()
   Serial.println(fs_info.maxPathLength);
   Serial.println();
 
-  //If connection successful show IP address in serial monitor
   Serial.print("***** Loading ledstripes configuration: ");
-  Serial.println("TODO");
+  saved_colors.Init();
+  
  
   Serial.print("***** Settingup web server: ");
   server.on("/ajax/setcolor", WebAjaxSetColorHandler);    // set static color
+  server.on("/ajax/setpeek", WebAjaxPeekColorHandler);    //  enable peek mode and set the peek color
+  server.on("/ajax/unsetpeek", WebAjaxUnsetPeekColorHandler);    //  stop peek mode
   server.on("/ajax/getstripesstate",  WebAjaxGetStripesStateHandler);    // Get current static colors for all stripes
-  server.on("/ajax/savedcolors_add", WebAjaxSavedColorsAdd);    // add colors to favotites (do not save to flash)
+  server.on("/ajax/savedcolors_set", WebAjaxSavedColorsSet);    // add / set colors to favotites (do not save to flash)
+  server.on("/ajax/savedcolors_get", WebAjaxSavedColorsGet);    // get favorite colors
+  server.on("/ajax/savedcolors_del", WebAjaxSavedColorsDel);    // delete color from favorites
   //server.on("/ajax/getconfig", WebAjaxSetColorHandler);   // return configuration
   //server.on("/ajax/saveconfig", WebAjaxSetColorHandler);  // save configuration (try to cache it to limit flash writes)
   //server.on("/ajax/reset", WebAjaxSetColorHandler);       // reboot device

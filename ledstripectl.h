@@ -26,8 +26,9 @@ public:
         transitions(nullptr),
         current_transition(nullptr),
         duty_cycle(a_duty_cycle),
-        color_set(false),
-        power(false)
+        color_set_flag(false),
+        power(false),
+        in_color_peek(false)
         {
             pinMode(pin_r, OUTPUT);
             pinMode(pin_g, OUTPUT);
@@ -36,7 +37,9 @@ public:
             analogWriteFreq(a_duty_cycle);
 
             //Serial.printf("LedStripeCtl: %d, %d, %d, %u\r\n", pin_r, pin_g, pin_b, duty_cycle);
-            color = LedStripeState(0, 0, 0, 1);
+            base_color = LedStripeState(0, 0, 0, 1);
+            peek_color = LedStripeState(0, 0, 0, 1);
+            p_color = & base_color; // set current color to pimary one
 
             for(LedStripeTrans trb : transitions_buffer)
                 trb = LedStripeTrans(duty_cycle);
@@ -88,11 +91,27 @@ public:
     // set static color, and remove any transitions, static color is used when transitions is null
     void SetColor(uint16_t a_r, uint16_t a_g, uint16_t a_b)
     {
-        color.SetColor_R(a_r);
-        color.SetColor_G(a_g);
-        color.SetColor_B(a_b);
+        p_color->SetColor_R(a_r);
+        p_color->SetColor_G(a_g);
+        p_color->SetColor_B(a_b);
 
         ClearTransitions();
+    }
+
+    // set secondary color just 
+    void Switch2PeekColor(void)
+    {
+        p_color = &peek_color;
+        in_color_peek = true;
+        color_set_flag = false; // refresh color
+    }
+
+    // set secondary color just 
+    void Switch2BaseColor(void)
+    {
+        p_color = &base_color;
+        in_color_peek = false;
+        color_set_flag = false; // refresh color
     }
 
     bool ActiveTransitions(void) 
@@ -111,7 +130,7 @@ public:
     void PowerOn(void) 
     {
         power = true;
-        color_set = false;
+        color_set_flag = false;
     }
 
     void SetPower(bool power)
@@ -133,8 +152,8 @@ public:
         return JSON_STRIPE_STATIC_COLOR;
     }
 
-    // return reference to static color
-    LedStripeState & GetColorState(void) { return color; }
+    // return reference to static color (always return base color)
+    LedStripeState & GetColorState(void) { return base_color; }
 
     // use internal transition (pointer returned for manilulation outside the object) if no memory left returns null
     LedStripeTrans * AddTransition(uint16_t a_r, uint16_t a_g, uint16_t a_b, uint16_t a_tr, uint16_t a_tg, uint16_t a_tb, uint32_t a_time_ms)
@@ -166,7 +185,7 @@ public:
         }
 
         // unlock static color Update
-        color_set = false;
+        color_set_flag = false;
     }
 
 
@@ -176,7 +195,7 @@ public:
         if(!power)  // stipe off
             return;
 
-        if(current_transition)
+        if(current_transition && !in_color_peek)
         {    
             bool trans_done = false;
             uint32_t current_time = millis();
@@ -198,12 +217,12 @@ public:
                 current_transition->Reset();
             }
         }
-        else if(!color_set)
+        else if(!color_set_flag)
         {
-            analogWrite(pin_r, color.GetDuty_R());
-            analogWrite(pin_g, color.GetDuty_G());
-            analogWrite(pin_b, color.GetDuty_B());
-            color_set = true;
+            analogWrite(pin_r, p_color->GetDuty_R());
+            analogWrite(pin_g, p_color->GetDuty_G());
+            analogWrite(pin_b, p_color->GetDuty_B());
+            color_set_flag = true;
         }
         
     }
@@ -220,8 +239,11 @@ protected:
     uint16_t duty_cycle;
 
     LedStripeTrans transitions_buffer[MAX_STRIPE_TRANSITIONS];
-    LedStripeState color;
-    bool color_set;
+    LedStripeState base_color;
+    LedStripeState peek_color;
+    LedStripeState * p_color;
+    bool color_set_flag;
+    bool in_color_peek;
     bool power;
 };
 

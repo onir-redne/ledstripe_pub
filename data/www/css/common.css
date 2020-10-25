@@ -17,6 +17,12 @@
     display : inline-block;
 }
 
+.input-quead-mini {
+    width : 22px;
+    height : 22px;
+    display : inline-block;
+}
+
 .input-quad.selected {
     height : 72px;
     width : 84px;
@@ -26,7 +32,18 @@
     width : 120px;
 }
 
-.ui-slider-input {
-    display : none !important;
+.saved-color-text {
+    text-shadow: 2px 2px 12px #000000;
+    color: #ffffff;
 }
+
+.saved-color-button {
+        margin-left: 5px;
+}
+
+.saved-color-element {
+    margin-top: 4px;
+    padding: 10px;
+}
+
 
