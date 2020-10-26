@@ -114,6 +114,11 @@ public:
         color_set_flag = false; // refresh color
     }
 
+    bool ColorPeekMode(void) 
+    {
+        return in_color_peek;
+    }
+
     bool ActiveTransitions(void) 
     {
         return (transitions) ? true : false;

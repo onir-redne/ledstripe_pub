@@ -51,13 +51,6 @@ window.onload = function() {
                 self.selectedInput.style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";          
                 self.selectedInput.value = self.getCurColorHex()
 
-                var led_stripe = 0;
-                if (self.selectedInput.id == 'left_stripe_color') {
-                    led_stripe = 0;
-                } else {
-                    led_stripe = 1;
-                }
-
                 $.ajax({
                     'url' : '/ajax/setcolor',
                     'type' : 'GET',
@@ -65,7 +58,7 @@ window.onload = function() {
                         'r' : rgbCurrent.r,
                         'g' : rgbCurrent.g,
                         'b' : rgbCurrent.b,
-                        'l' : led_stripe
+                        'l' : self.selectedInput.getAttribute('data-stripe-id')
                     }
                 });
             }
@@ -136,7 +129,7 @@ window.onload = function() {
 
     // set led status and schedule update timer.
     powerManagement.ajaxGetLestripesState(); 
-    updateTimer = setInterval(powerManagement.ajaxGetLestripesState, 1000);
+    updateTimer = setInterval(powerManagement.ajaxGetLestripesState, 10000);
     navigationHelpers.HideLoadingOverlay();
 }
 
@@ -191,6 +184,7 @@ var navigationHelpers = {
     },
 
     ShowConfirmationDialog : function(src, ok_handler, message) {
+        self.confirmation_dialog_OK.unbind('click');
         if(message) {
             self.confirmation_dialog_text.text(message);
         } else {
@@ -201,6 +195,7 @@ var navigationHelpers = {
     },
 
     ShowColorPickerDialog : function(src, ok_handler, set_name, message, color_name, color) {
+        self.color_peeker_dialog_OK.unbind('click');
         if(message) {
             self.color_peeker_dialog_text.text(message);
         } else {
@@ -243,20 +238,26 @@ var savedColors = {
     load : function(target) {
         $.getJSON('/ajax/savedcolors_get', function(response) {
             target.html('');
-            var new_html = ''
+            var new_html = '';
             for (i = 0; i < response.colors.length; i++) {
                 var c = {r: response.colors[i].r, g : response.colors[i].g, b : response.colors[i].b};
                 var vc = tools.RGBfromHV(response.colors[i].r, response.colors[i].g, response.colors[i].b);
                 var cid = response.colors[i].id;
+                var name = response.colors[i].name;
                 
-                if(!(response.colors[i].s & 0x01)){  
-                    c = {r: 255, g: 255, b: 255};
-                    vc = {r: 255, g: 255, b: 255}
+                // if(!(response.colors[i].s & 0x01)) {  
+                //     c = {r: 255, g: 255, b: 255};
+                //     vc = {r: 255, g: 255, b: 255};
+                // }
+
+                if(!(response.colors[i].s & 0x02)) {
+                    name += ' *';
                 }
                 
-                var name = response.colors[i].name;
-                if(name.length == 0)
-                    name = 'empty';
+                // if(name.length == 0) {
+                //     name = 'empty';
+                // }
+
                 new_html += '<a href="#" class="ui-shadow ui-btn ui-corner-all saved-color-element" style="background: linear-gradient(90deg, rgba('+ c.r +','+ c.g +','+ c.b +',1) 70%, rgba(' + vc.r + ',' + vc.g + ',' + vc.b + ',1) 100%);">\
                                 <div class="ui-grid-g">\
                                     <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(' + cid + '); }, true, "edit color" ,' +  name + ', ' + rgba('+ c.r +','+ c.g +','+ c.b +',1) + ' ");">\
@@ -266,22 +267,11 @@ var savedColors = {
                                         <input type="button" data-enhanced="true" value="">\
                                     </div>\
                                 </div>\
-                                <div class="saved-color-text">' +  name + '</div>\
-                            </a>';
-            }
-
-            /*<div class="ui-grid-g">
-                    <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button" >
-                        <input type="button" data-enhanced="true" value="" onclick="navigationHelpers.ShowColorPickerDialog(event.target, savedColors.set, true, 'message', 'color_name', {r: 120, g: 200, b: 50});">
-                    </div>
-                    <div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext saved-color-button" >
-                        <input type="button" data-enhanced="true" value="" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function(){}, 'Do you realy want to remove?');" >
-                    </div>
-                </div>*/
-
+                                <div class="saved-color-text">' +  name + '</div></a>';
+                }
             // when empty list just or free slots left append ADD button
-            if(response.max > response.free) {
-                new_html += '<button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.add(); }, true, "edit color" ,' +  name + ', { r:' + c.r +', g:'+ c.g +', b:' + c.b + ' }, 1);">Add color</button>';
+            if(response.free > 0) {
+                new_html += "<button class=\"ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left\" onclick=\"navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.add(); }, true, 'Add color', '', { r: 255, g: 255, b: 255 });\">Add color</button>";
             }
             target.html(new_html);
         });
@@ -297,7 +287,7 @@ var savedColors = {
     add : function() {
         var rgb_color = dialog_color_picker.getCurColorRgb();
         var name = $('#color_peeker_dialog_name').val();
-        $.getJSON('/ajax/savedcolors_add', {
+        $.getJSON('/ajax/savedcolors_set', {
             'r' : rgb_color.r,
             'g' : rgb_color.g,
             'b' : rgb_color.b,
@@ -311,7 +301,7 @@ var savedColors = {
     set : function(cid)  {
         var rgb_color = dialog_color_picker.getCurColorRgb();
         var name = $('#color_peeker_dialog_name').val();
-        $.getJSON('/ajax/savedcolors_add', {
+        $.getJSON('/ajax/savedcolors_set', {
             'id' : cid,
             'r' : rgb_color.r,
             'g' : rgb_color.g,
@@ -332,16 +322,28 @@ var savedColors = {
                 self.load();
             });
     },
+
+    sync : function() {
+        $.getJSON('/ajax/savedcolors_sync', {},
+        function(response) {
+            // reload colors on success
+            self.load();
+        });
+    }
 }
 
 var powerManagement = {
 
     poweroff_slider : null,
+    poweroff_slider_user_int : false,
     power_sw : null,
 
     init : function() {
         self.poweroff_slider = $('#power_off_timer');
         self.power_sw = $('#power_sw');
+        // attach power timer event handler
+        self.poweroff_slider.on("slidestart", powerManagement.poweroffTimerOnSlideStart);
+        self.poweroff_slider.on("slidestop", powerManagement.poweroffTimerOnSlideEnd);
     },
 
     ajaxSetLedstripesPowerTimer : function(time) {
@@ -364,9 +366,11 @@ var powerManagement = {
 
     ajaxGetLestripesState : function() {
         $.getJSON('/ajax/getstripesstate', function(jsondata) {
-    
-            self.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
-            self.poweroff_slider.slider( "refresh" );
+            
+            if(!self.poweroff_slider_user_int) {
+                self.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
+                self.poweroff_slider.slider( "refresh" );
+            }
             if(jsondata.power == 1) {
                 if($("#power_sw option:selected").val() != 'on')
                     self.power_sw.val("on").change();
@@ -377,10 +381,21 @@ var powerManagement = {
          });
     },
 
-    poweroffTimer : function(event) {
-        event.preventDefault();
-        event.stopPropagation();
+    poweroffTimerOnSlideStart : function(event, ui) {
+        self.poweroff_slider_user_int = true;   // prevent updating when user interacts
+    },
+
+    poweroffTimerOnSlideEnd : function(event, ui) {
+        //event.preventDefault();
+        //event.stopPropagation();
         powerManagement.ajaxSetLedstripesPowerTimer(self.poweroff_slider.val());
+        self.poweroff_slider_user_int = false;
+    },
+
+    poweroffTimerOnChange : function(event, ui) {
+        //event.preventDefault();
+        //event.stopPropagation();
+        //powerManagement.ajaxSetLedstripesPowerTimer(self.poweroff_slider.val());
     },
 }
 

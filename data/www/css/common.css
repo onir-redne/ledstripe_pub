@@ -12,9 +12,13 @@
 }
 
 .input-quad {
-    width : 74px;
-    height : 56px;
+    width : 50px;
+    height : 55px;
     display : inline-block;
+}
+.input-quad.selected {
+    width : 50px;
+    height : 72px;
 }
 
 .input-quead-mini {
@@ -23,10 +27,6 @@
     display : inline-block;
 }
 
-.input-quad.selected {
-    height : 72px;
-    width : 84px;
-}
 
 .ui-btn.wide120 {
     width : 120px;

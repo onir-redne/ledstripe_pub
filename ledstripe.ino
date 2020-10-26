@@ -35,19 +35,26 @@ ESP8266WebServer server(80);
 
 ////////////////////////////////////////
 //LED Connections
-const int BlueLED_L = 16; // D0
-const int RedLED_L = 5;    // D1 
-const int GreenLED_L = 4; // D2
-const int BlueLED_R = 0; // D3
-const int RedLED_R = 14;    // D5
-const int GreenLED_R = 12; // D6
-const int intLED = 2; // D4
+const int led_A_Red = 5;    // D1 
+const int led_A_Green = 4; // D2
+const int led_A_Blue = 16; // D0
 
-LedStripeCtl led_stipe_L = LedStripeCtl(RedLED_L, GreenLED_L, BlueLED_L, PWM_DUTY_CYCLE);
-LedStripeCtl led_stipe_R = LedStripeCtl(RedLED_R, GreenLED_R, BlueLED_R, PWM_DUTY_CYCLE);
-LedStripeCtl * led_stripes[] = {&led_stipe_L, &led_stipe_R};
+const int led_B_Red = 14;    // D5
+const int led_B_Green = 12; // D6
+const int led_B_Blue = 0; // D3
+
+const int led_C_Red = 15;    // D8 
+const int led_C_Green = 3; // RX
+const int led_C_Blue = 13; // D7
+
+
+
+LedStripeCtl led_stipe_A = LedStripeCtl(led_A_Red, led_A_Green, led_A_Blue, PWM_DUTY_CYCLE);
+LedStripeCtl led_stipe_B = LedStripeCtl(led_B_Red, led_B_Green, led_B_Blue, PWM_DUTY_CYCLE);
+LedStripeCtl led_stipe_C = LedStripeCtl(led_C_Red, led_C_Green, led_C_Blue, PWM_DUTY_CYCLE);
+LedStripeCtl * led_stripes[] = {&led_stipe_A, &led_stipe_B, &led_stipe_C};
 Ticker timer_leds = Ticker();
-SavedColors saved_colors = SavedColors("");
+SavedColors saved_colors = SavedColors(SAVED_COLORS_FILE);
 
 bool led_power = false;
 uint16_t power_off_timer = 0;
@@ -59,8 +66,9 @@ Ticker timer_clock = Ticker();
 // global led updater
 void TickUpdateStipes(void)
 {
-  led_stipe_L.Update();
-  led_stipe_R.Update();
+  led_stipe_A.Update();
+  led_stipe_B.Update();
+  led_stipe_C.Update();
 }
 
 ////////////////////////////////////////
@@ -147,7 +155,8 @@ void WebAjaxPeekColorHandler()
 
   for(LedStripeCtl * sctl : led_stripes) 
   {
-    sctl->Switch2PeekColor();
+    if(!sctl->ColorPeekMode())
+      sctl->Switch2PeekColor();
     sctl->SetColor(r, g, b);
   }
 
@@ -184,9 +193,6 @@ void WebAjaxSetColorHandler(void)
     Serial.println(" - 200");
     return;
   }
-
-  server.send(500, content_plain, "Internal error");
-  Serial.println(" - 500");
 }
 
 
@@ -255,20 +261,19 @@ void WebAjaxSavedColorsGet(void)
 
   Serial.printf("AJAX: %s", server.uri().c_str());
 
-  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,colors: [", cmax, cfree);
+  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"colors\": [", cmax, cfree);
   while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
   {
     name[0] = 0;
     offset += sprintf(json_buffer + offset, "{\"id\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"set\":%u,\"name\":\"%s\"},", id, r, g, b, set, name);
   }
 
-  if(cmax - cfree > 0)
-    json_buffer[offset - 1] = ']}';
-  else
-    json_buffer[offset] = ']}';
+  if(cmax > cfree > 0)
+    offset--;
   
-  offset++;
-
+  json_buffer[offset++] = ']';
+  json_buffer[offset++] = '}';
+  
   server.send(200, content_json, json_buffer);
   Serial.print(json_buffer);
   Serial.println(" - 200");
@@ -277,6 +282,14 @@ void WebAjaxSavedColorsGet(void)
 void WebAjaxSavedColorsDel(void)
 {
 
+}
+
+void  WebAjaxSavedColorsSync(void)
+{
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  saved_colors.Sync();
+  server.send(200, content_plain);
+  Serial.println(" - 200");
 }
 
 ////////////////////////////////////////////////
@@ -323,7 +336,10 @@ void setup()
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);     //Connect to your WiFi router
   Serial.println("");
-  
+
+  //setup all possible pins to GPIO
+  Serial.println("***** Setup all pins to GPIO function...");
+
   // Wait for connection
   Serial.printf("***** Waiting for WiFi ssid [%s]: ", ssid);
   while (WiFi.status() != WL_CONNECTED) {
@@ -377,6 +393,7 @@ void setup()
   server.on("/ajax/savedcolors_set", WebAjaxSavedColorsSet);    // add / set colors to favotites (do not save to flash)
   server.on("/ajax/savedcolors_get", WebAjaxSavedColorsGet);    // get favorite colors
   server.on("/ajax/savedcolors_del", WebAjaxSavedColorsDel);    // delete color from favorites
+  server.on("/ajax/savedcolors_sync", WebAjaxSavedColorsSync);  // update flash
   //server.on("/ajax/getconfig", WebAjaxSetColorHandler);   // return configuration
   //server.on("/ajax/saveconfig", WebAjaxSetColorHandler);  // save configuration (try to cache it to limit flash writes)
   //server.on("/ajax/reset", WebAjaxSetColorHandler);       // reboot device
@@ -404,18 +421,26 @@ void setup()
   // led_stipe_R.AddTransition(  0, 127, 255,  /*->*/   127, 255, 127, 1000);
   // led_stipe_R.AddTransition(127, 255, 127,  /*->*/   255, 127,   0, 1000);
 
-  led_stipe_R.AddTransition(55, 0,   0,  /*->*/   0,   0, 0, 50);
-  led_stipe_R.AddTransition(0,   0,   0,  /*->*/   0,  0, 55, 100);
-  led_stipe_R.AddTransition(0,   0, 55,  /*->*/   0, 0, 0, 50);
-  led_stipe_R.AddTransition(0,   0,   0,  /*->*/   55,  0, 0, 100);
+  // led_stipe_B.AddTransition(55, 0,   0,  /*->*/   0,   0, 0, 50);
+  // led_stipe_B.AddTransition(0,   0,   0,  /*->*/   0,  0, 55, 100);
+  // led_stipe_B.AddTransition(0,   0, 55,  /*->*/   0, 0, 0, 50);
+  // led_stipe_B.AddTransition(0,   0,   0,  /*->*/   55,  0, 0, 100);
 
  
-  led_stipe_L.AddTransition(0,   0, 55,  /*->*/   0, 0, 0, 50);
-  led_stipe_L.AddTransition(0,   0,   0,  /*->*/   55,  0, 0, 100);
-  led_stipe_L.AddTransition(55, 0,   0,  /*->*/   0,   0, 0, 50);
-  led_stipe_L.AddTransition(0,   0,   0,  /*->*/   0,  0, 55, 100);
+  // led_stipe_A.AddTransition(0,   0, 55,  /*->*/   0, 0, 0, 50);
+  // led_stipe_A.AddTransition(0,   0,   0,  /*->*/   55,  0, 0, 100);
+  // led_stipe_A.AddTransition(55, 0,   0,  /*->*/   0,   0, 0, 50);
+  // led_stipe_A.AddTransition(0,   0,   0,  /*->*/   0,  0, 55, 100);
 
-  
+  led_stipe_A.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  led_stipe_A.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+
+  led_stipe_B.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  led_stipe_B.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+
+  led_stipe_C.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  led_stipe_C.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+
 
 
   // attach timer to call led update

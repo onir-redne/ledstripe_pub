@@ -14,8 +14,12 @@
 #define MAX_SAVED_COLORS        32
 #define COLOR_NAME_LEN          17
 #define COLOR_SAVE_BYTES        4
-
 #define DEFAULT_PEEK_COLOR_TOUT 5
+#define SAVED_COLORS_FILE       "/config/colors.bin"
+
+//////////////////////////////////
+// saved transitions
+#define SAVED_TRANS_FILE       "/config/transitions.bin"
 
 //////////////////////////////////
 // Webserver and JSON strings

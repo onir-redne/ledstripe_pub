@@ -16,7 +16,9 @@
 #define COLOR_SAVE_NAME         7
 
 #define COLOR_RECORD_LEN        COLOR_NAME_LEN + COLOR_SAVE_BYTES
-#define COLOR_SET_ENABLED_MASK  0x01
+#define COLOR_SET_ENABLED_MASK  0x01    // color is defined
+#define COLOR_SET_SYNCED_MASK  0x02     // stored in flash
+
 
 using namespace std;
 
@@ -43,6 +45,7 @@ public:
                 Serial.print("#");
             }
             Serial.println("]");
+            file.close();
         }
         else
         {
@@ -58,7 +61,28 @@ public:
     }
 
     // sync to file
-    void Sync(void) {}
+    void Sync(void) 
+    {
+        fs::File file = LittleFS.open(filename, "w+");
+        if(file.isFile())
+        {
+            Serial.println("SavedColors: writing to file...");
+
+            for(int i = 0; i < MAX_SAVED_COLORS; i++)
+            {
+                Serial.printf("   #%u r:%u g:%u b:%u [%s]\r\n", i, colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_R], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_G], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_B], &colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_NAME]);
+                colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_SET] |= (uint8_t)COLOR_SET_SYNCED_MASK;  // mark files synced
+            }
+
+            file.write(colors, MAX_SAVED_COLORS * (COLOR_SAVE_BYTES + COLOR_NAME_LEN));
+            file.close();
+        }
+        else
+        {
+            // no file will create one in sync
+            Serial.println("SavedColors: error while writing to file!");
+        }
+    }
 
     uint8_t GetColorsCount(void)
     {
@@ -70,14 +94,16 @@ public:
     {
         if(index <= MAX_SAVED_COLORS)
         {
+            Serial.printf("SetColor(): #%u r:%u g:%u b%u [%s]\r\n",index, r, g, b, name);
             colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_R]  = r;
             colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_G]  = g;
             colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_B]  = b;
 
-            if(!(colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET] & (uint8_t)0x01))
+            if(!(colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET] & (uint8_t)COLOR_SET_ENABLED_MASK))
                 free_colors--;
 
-            colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET] |= (uint8_t)0x01;
+            colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET] |= (uint8_t)COLOR_SET_ENABLED_MASK;
+            colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET] &= ~(uint8_t)COLOR_SET_SYNCED_MASK; // mark unsynced!
             
             if(name)
                 strncpy((char*)&colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_NAME], name, COLOR_NAME_LEN);
@@ -89,6 +115,7 @@ public:
     {
         if(free_colors > 0)
         {
+            Serial.printf("AddColor(): #%u r:%u g:%u b%u [%s]\r\n",free_colors - 1, r, g, b, name);
             SetColor(fcolors[free_colors - 1], r, g, b, name);
             return true;
         }
