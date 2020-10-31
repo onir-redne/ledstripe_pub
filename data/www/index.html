@@ -19,8 +19,9 @@
     <div data-role="navbar">
         <ul>
             <li><a href="#color-picker" data-icon="grid" data-transition="flow" class="ui-btn-active">Color Picker</a></li>
-            <li><a href="#saved-colors" data-icon="star" data-transition="flow">Saved Colors</a></li>
-            <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition Sets</a></li>
+            <li><a href="#saved-colors" data-icon="star" data-transition="flow">Fav. Colors</a></li>
+            <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition</a></li>
+            <li><a href="#spectrum-analyser" data-icon="audio" data-transition="flow">Spectrum</a></li>
             <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
         </ul>
     </div><!-- /navbar -->
@@ -35,10 +36,9 @@
         </select>
         <!--label for="power_off_timer">power off timer</label-->
         <input oninput="{ powerManagement.poweroffTimer(event); }" type="range" name="power_off_timer" id="power_off_timer" min="0" max="120" value="0" data-show-value="true" data-popup-enabled="true">
-        <div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-cloud ui-btn-icon-notext saved-color-button" >
+        <!--div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-cloud ui-btn-icon-notext saved-color-button">
             <input type="button" data-enhanced="true" value="" onclick="savedColors.sync()">
-        </div>
-    </div>
+        </div-->
     </div>
 </div><!-- /footer -->
 
@@ -53,9 +53,9 @@
         <div class="ui-body ui-body-a ui-corner-all center-wrapper">
             <canvas id="color_picker_canvas"></canvas>
             <div data-role="controlgroup" data-type="horizontal">
-                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" data-stripe-id="0" id="stripe_color_A"></div>
-                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" data-stripe-id="1" id="stripe_color_B"></div>
-                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="ui-btn ui-corner-all input-quad" data-stripe-id="2" id="stripe_color_C"></div>
+                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="0" id="stripe_color_A">A</div>
+                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="1" id="stripe_color_B">B</div>
+                <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="2" id="stripe_color_C">C</div>
             </div>	
         </div>
 	</div><!-- /content -->
@@ -64,9 +64,27 @@
 
 <!-- ------------------------------------------- SAVED COLORS --------------------------------------  -->
 <div data-role="page" id="saved-colors" data-theme="a" data-title="Saved Colors">
+	<div role="main">
+        <div id="saved_colors_list" >
+            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
+                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext"></a>
+                <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext"></a></div>
+                <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
+                <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">B</a></div>
+                <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
+                <div class="saved-color-text center-wrapper">demo color</div>
+            </div>
+        </div>
+    </div>
+</div><!-- /page two -->
+
+
+<!-- ------------------------------------------- TRANSITION SETS --------------------------------------  -->
+<div data-role="page" id="transition-sets" data-theme="a" data-title="Transition Sets">
 	<div role="main" class="ui-content">
-        <div class="ui-responsive" id="saved_colors_list">
-            <a href="#" class="ui-shadow ui-btn ui-corner-all saved-color-element" style="background: linear-gradient(90deg,  rgba(10,10,40,1) 70%, rgba(120,200,200,1) 100%);">
+        <div class="ui-field-contain" id="transition_sets_list">
+
+            <a href="#" class="ui-shadow ui-btn ui-corner-all saved-transition-set" style="background: linear-gradient(90deg,  rgba(10,100,100,1) 25%, rgba(120,200,200,1) 50%,  rgba(100,10,40,1) 75%, rgba(220,100,100,1) 100%);">
                 <div class="ui-grid-g">
                     <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button" >
                         <input type="button" data-enhanced="true" value="" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'message', 'color_name', {r: 120, g: 200, b: 50});">
@@ -97,9 +115,8 @@
 	</div><!-- /content -->
 </div><!-- /page two -->
 
-
-<!-- ------------------------------------------- TRANSITION SETS --------------------------------------  -->
-<div data-role="page" id="transition-sets" data-theme="a" data-title="Transition Sets">
+<!-- ------------------------------------------- SPECTRUM-ANALYSER --------------------------------------  -->
+<div data-role="page" id="spectrum-analyser" data-theme="a" data-title="Spectrum Analyser">
 	<div role="main" class="ui-content">
 		
 	</div><!-- /content -->

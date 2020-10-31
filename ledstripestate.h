@@ -12,7 +12,8 @@ using namespace std;
 // This class represents RDB Stripe color
 class LedStripeState
 {
-    friend class LedStripeTrans;
+    friend class LedStripeTransColor;
+    friend class LedStripeTransSpectrum;
 
 public:
     LedStripeState() : LedStripeState(MAX_LED_TRANS_TIME) {}

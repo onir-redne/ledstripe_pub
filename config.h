@@ -2,12 +2,25 @@
 #define _CONFIG_H
 
 //////////////////////////////////
+// pins
+#define PIN_D0                  16
+#define PIN_D1                  5
+#define PIN_D2                  4
+#define PIN_D3                  0
+#define PIN_D4                  2
+#define PIN_D5                  14
+#define PIN_D6                  12
+#define PIN_D7                  13
+#define PIN_D8                  15
+#define PIN_RX                  3
+#define PIN_TX                  1
+#define PIN_ADC0                17
+
+
+//////////////////////////////////
 // leds
 #define PWM_DUTY_CYCLE          1023
 #define COLOR_RANGE             (PWM_DUTY_CYCLE / 255)
-#define MAX_LED_TRANS_TIME      60000
-#define MAX_STRIPE_TRANSITIONS  8
-
 
 //////////////////////////////////
 // saved colors limits
@@ -19,7 +32,17 @@
 
 //////////////////////////////////
 // saved transitions
+#define MAX_SAVED_TRNAS_SETS    16
+#define MAX_LED_TRANS_TIME      60000
+#define MAX_STRIPE_TRANSITIONS  8
 #define SAVED_TRANS_FILE       "/config/transitions.bin"
+
+//////////////////////////////////
+// spectrum analyser
+#define SPECTRUM_MAX_APMPLITUDE     50
+#define SPECTRUM_SAMPLING_FREQ      10000
+#define SPECTRUM_SAMPLES_COUNT      256
+#define SPECTRUM_NOISE_FILTER       200
 
 //////////////////////////////////
 // Webserver and JSON strings

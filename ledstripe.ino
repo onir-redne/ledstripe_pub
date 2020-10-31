@@ -7,16 +7,19 @@
  */ 
  
 #include <inttypes.h>
-#include  <cstring>
+#include <cstring>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-//#include <EEPROM.h>
 #include <Ticker.h>
 #include "config.h"
 #include "LittleFS.h"
 #include "ledstripestate.h"
 #include "ledstripectl.h"
 #include "savedcolors.h"
+
+#ifdef ESP32
+  #include "spectrum.h"
+#endif
 
 ////////////////////////////////////////
 //SSID and Password of your WiFi router
@@ -35,35 +38,50 @@ ESP8266WebServer server(80);
 
 ////////////////////////////////////////
 //LED Connections
-const int led_A_Red = 5;    // D1 
-const int led_A_Green = 4; // D2
-const int led_A_Blue = 16; // D0
+const int led_A_Red =   PIN_D1;
+const int led_A_Green = PIN_D2;
+const int led_A_Blue =  PIN_D0;
 
-const int led_B_Red = 14;    // D5
-const int led_B_Green = 12; // D6
-const int led_B_Blue = 0; // D3
+const int led_B_Red =   PIN_D5;
+const int led_B_Green = PIN_D6;
+const int led_B_Blue =  PIN_D3;
 
-const int led_C_Red = 15;    // D8 
-const int led_C_Green = 3; // RX
-const int led_C_Blue = 13; // D7
+const int led_C_Red =   PIN_D8;
+const int led_C_Green = PIN_RX;
+const int led_C_Blue =  PIN_D7;
 
+/////////////////////////////////////////
+// Spectrum analyser
+#ifdef ESP32
+  SpectrumAnalyser spec_analyser = SpectrumAnalyser(PIN_ADC0, SPECTRUM_SAMPLING_FREQ, SPECTRUM_SAMPLES_COUNT);
+#endif
 
-
-LedStripeCtl led_stipe_A = LedStripeCtl(led_A_Red, led_A_Green, led_A_Blue, PWM_DUTY_CYCLE);
-LedStripeCtl led_stipe_B = LedStripeCtl(led_B_Red, led_B_Green, led_B_Blue, PWM_DUTY_CYCLE);
-LedStripeCtl led_stipe_C = LedStripeCtl(led_C_Red, led_C_Green, led_C_Blue, PWM_DUTY_CYCLE);
+///////////////////////////////////////
+// led stripes
+#ifdef ESP32
+  LedStripeCtl led_stipe_A = LedStripeCtl(led_A_Red, led_A_Green, led_A_Blue, PWM_DUTY_CYCLE, &spec_analyser);
+  LedStripeCtl led_stipe_B = LedStripeCtl(led_B_Red, led_B_Green, led_B_Blue, PWM_DUTY_CYCLE, &spec_analyser);
+  LedStripeCtl led_stipe_C = LedStripeCtl(led_C_Red, led_C_Green, led_C_Blue, PWM_DUTY_CYCLE, &spec_analyser);
+#else
+  LedStripeCtl led_stipe_A = LedStripeCtl(led_A_Red, led_A_Green, led_A_Blue, PWM_DUTY_CYCLE);
+  LedStripeCtl led_stipe_B = LedStripeCtl(led_B_Red, led_B_Green, led_B_Blue, PWM_DUTY_CYCLE);
+  LedStripeCtl led_stipe_C = LedStripeCtl(led_C_Red, led_C_Green, led_C_Blue, PWM_DUTY_CYCLE);
+#endif
 LedStripeCtl * led_stripes[] = {&led_stipe_A, &led_stipe_B, &led_stipe_C};
+
 Ticker timer_leds = Ticker();
 SavedColors saved_colors = SavedColors(SAVED_COLORS_FILE);
 
+////////////////////////////////////////
+// Power
 bool led_power = false;
 uint16_t power_off_timer = 0;
 uint16_t color_peek_timer = 0;
-
 Ticker timer_clock = Ticker();
 
 ////////////////////////////////////////
-// global led updater
+//Ticker callbacks
+// Led updater
 void TickUpdateStipes(void)
 {
   led_stipe_A.Update();
@@ -75,6 +93,7 @@ void TickUpdateStipes(void)
 // internal clock
 void TickClock(void)
 {
+  //Serial.printf("ADC: %u\r\n", adc_val);
   if(power_off_timer)
   {
     power_off_timer--;
@@ -90,7 +109,7 @@ void TickClock(void)
   if(color_peek_timer)
   {
     color_peek_timer--;
-    if(power_off_timer == 0)
+    if(color_peek_timer == 0)
     {
       for(LedStripeCtl * sctl : led_stripes) 
         sctl->Switch2BaseColor();
@@ -193,6 +212,9 @@ void WebAjaxSetColorHandler(void)
     Serial.println(" - 200");
     return;
   }
+
+  server.send(500, content_plain);
+  Serial.println(" - 500");
 }
 
 
@@ -264,11 +286,11 @@ void WebAjaxSavedColorsGet(void)
   offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"colors\": [", cmax, cfree);
   while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
   {
-    name[0] = 0;
     offset += sprintf(json_buffer + offset, "{\"id\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"set\":%u,\"name\":\"%s\"},", id, r, g, b, set, name);
+    name[0] = 0;
   }
 
-  if(cmax > cfree > 0)
+  if(cfree < cmax)
     offset--;
   
   json_buffer[offset++] = ']';
@@ -281,7 +303,11 @@ void WebAjaxSavedColorsGet(void)
 
 void WebAjaxSavedColorsDel(void)
 {
-
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  uint8_t id = atoi(server.arg("id").c_str());
+  saved_colors.DelColor(id);
+  server.send(200, content_plain);
+  Serial.println(" - 200");
 }
 
 void  WebAjaxSavedColorsSync(void)
@@ -432,15 +458,18 @@ void setup()
   // led_stipe_A.AddTransition(55, 0,   0,  /*->*/   0,   0, 0, 50);
   // led_stipe_A.AddTransition(0,   0,   0,  /*->*/   0,  0, 55, 100);
 
-  led_stipe_A.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
-  led_stipe_A.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+  //led_stipe_A.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  //led_stipe_A.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
 
-  led_stipe_B.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
-  led_stipe_B.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+  //led_stipe_B.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  //led_stipe_B.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
 
-  led_stipe_C.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
-  led_stipe_C.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
+  //led_stipe_C.AddTransition(0,   0,   0,  /*->*/   255, 255, 255, 500);
+  //led_stipe_C.AddTransition(255, 255, 255,  /*->*/   0,  0, 0, 500);
 
+
+  //led_stipe_A.AddTransition(125, 1000, 1000, 4000, 4000, 8000);
+  //spec_analyser.Enable();
 
 
   // attach timer to call led update
@@ -455,4 +484,7 @@ void setup()
 void loop()
 {
   server.handleClient();
+#ifdef ESP32
+  spec_analyser.Update();
+#endif
 }

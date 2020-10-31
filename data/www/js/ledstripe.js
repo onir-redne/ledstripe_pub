@@ -25,9 +25,10 @@ $(function(){
 
 window.onload = function() {
 
-    // setup navigation
     navigationHelpers.init();
     powerManagement.init();
+    stripeState.init();
+
     navigationHelpers.ShowLoadingOverlay();
 
     main_color_picker = new KellyColorPicker({ 
@@ -40,27 +41,22 @@ window.onload = function() {
             change : function(self) {
                 // on color chnge
                 if (!self.selectedInput) return;
-                if (self.getCurColorHsv().v < 0.5)
-                    self.selectedInput.style.color = "#FFF";
-                else
-                    self.selectedInput.style.color = "#000";
-
                 var rgbCurrent = self.getCurColorRgb();
                 var hsvCurrent = self.getCurColorHsv();
-                var baseColorRgb = tools.HSVtoRGB(hsvCurrent.h, hsvCurrent.s, 1.0);      
+                var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);      
                 self.selectedInput.style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";          
                 self.selectedInput.value = self.getCurColorHex()
-
-                $.ajax({
-                    'url' : '/ajax/setcolor',
-                    'type' : 'GET',
-                    'data' : {
-                        'r' : rgbCurrent.r,
-                        'g' : rgbCurrent.g,
-                        'b' : rgbCurrent.b,
-                        'l' : self.selectedInput.getAttribute('data-stripe-id')
-                    }
-                });
+                stripeState.setColor(self.selectedInput.getAttribute('data-stripe-id'), rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
+                // $.ajax({
+                //     'url' : '/ajax/setcolor',
+                //     'type' : 'GET',
+                //     'data' : {
+                //         'r' : rgbCurrent.r,
+                //         'g' : rgbCurrent.g,
+                //         'b' : rgbCurrent.b,
+                //         'l' : self.selectedInput.getAttribute('data-stripe-id')
+                //     }
+                // });
             }
         }
     });
@@ -75,18 +71,18 @@ window.onload = function() {
                 // on color chnge
                 var rgbCurrent = self.getCurColorRgb();
                 var hsvCurrent = self.getCurColorHsv();
-                var baseColorRgb = tools.HSVtoRGB(hsvCurrent.h, hsvCurrent.s, 1.0);      
+                var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);      
                 document.getElementById('color_picker_color').style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";
-
-                $.ajax({
-                    'url' : '/ajax/setpeek',
-                    'type' : 'GET',
-                    'data' : {
-                        'r' : rgbCurrent.r,
-                        'g' : rgbCurrent.g,
-                        'b' : rgbCurrent.b
-                    }
-                });
+                stripeState.setColorPeek(rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
+                // $.ajax({
+                //     'url' : '/ajax/setpeek',
+                //     'type' : 'GET',
+                //     'data' : {
+                //         'r' : rgbCurrent.r,
+                //         'g' : rgbCurrent.g,
+                //         'b' : rgbCurrent.b
+                //     }
+                // });
             }
         }
     });
@@ -241,33 +237,39 @@ var savedColors = {
             var new_html = '';
             for (i = 0; i < response.colors.length; i++) {
                 var c = {r: response.colors[i].r, g : response.colors[i].g, b : response.colors[i].b};
-                var vc = tools.RGBfromHV(response.colors[i].r, response.colors[i].g, response.colors[i].b);
+                hsv = rgbToHsv(c.r, c.g, c.b);
+                var vc = hsvToRgb(hsv.h, hsv.s, 1);
                 var cid = response.colors[i].id;
                 var name = response.colors[i].name;
                 
-                // if(!(response.colors[i].s & 0x01)) {  
-                //     c = {r: 255, g: 255, b: 255};
-                //     vc = {r: 255, g: 255, b: 255};
-                // }
+                /*if(!(response.colors[i].s & 0x02)) {
+                    name += '';
+                }*/
 
-                if(!(response.colors[i].s & 0x02)) {
-                    name += ' *';
-                }
+                /**
+                <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
+                    <div class="ui-block-a">
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext"></a>
+                    </div>
+                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
+                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">B</a></div>
+                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
+                    <div class="saved-color-text center-wrapper">demo color</div>
+                </div>
+                 */
                 
-                // if(name.length == 0) {
-                //     name = 'empty';
-                // }
-
-                new_html += '<a href="#" class="ui-shadow ui-btn ui-corner-all saved-color-element" style="background: linear-gradient(90deg, rgba('+ c.r +','+ c.g +','+ c.b +',1) 70%, rgba(' + vc.r + ',' + vc.g + ',' + vc.b + ',1) 100%);">\
-                                <div class="ui-grid-g">\
-                                    <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(' + cid + '); }, true, "edit color" ,' +  name + ', ' + rgba('+ c.r +','+ c.g +','+ c.b +',1) + ' ");">\
-                                        <input type="button" data-enhanced="true" value="">\
-                                    </div>\
-                                    <div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext saved-color-button" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.delete(' + cid + '); }, "Do you realy want to remove?");">\
-                                        <input type="button" data-enhanced="true" value="">\
-                                    </div>\
-                                </div>\
-                                <div class="saved-color-text">' +  name + '</div></a>';
+                new_html += `
+                <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(`+ c.r +`,`+ c.g +`,`+ c.b +`,1) 40%, rgba(` + vc.r + `,` + vc.g + `,` + vc.b + `,1) 100%);">
+                    <div class="ui-block-a">
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, 1);"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, 1);"></a>
+                    </div>
+                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(0, `+ c.r +`,`+ c.g +`,`+ c.b +`);">A</a></div>
+                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(1, `+ c.r +`,`+ c.g +`,`+ c.b +`);">B</a></div>
+                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(2, `+ c.r +`,`+ c.g +`,`+ c.b +`);">C</a></div>
+                    <div class="saved-color-text center-wrapper">` + name + `</div>
+                </div>`;
                 }
             // when empty list just or free slots left append ADD button
             if(response.free > 0) {
@@ -332,6 +334,54 @@ var savedColors = {
     }
 }
 
+
+/**
+ * set stripe to color, transition or spectrum
+ * enable color peek
+ */
+var stripeState = {
+
+    init : function() {
+
+    },
+
+    setColor : function(id, r, g, b) {
+        $.ajax({
+            'url' : '/ajax/setcolor',
+            'type' : 'GET',
+            'data' : {
+                'r' : r,
+                'g' : g,
+                'b' : b,
+                'l' : id
+            }
+        });
+    },
+
+    setColorPeek : function(r, g, b) {
+        $.ajax({
+            'url' : '/ajax/setpeek',
+            'type' : 'GET',
+            'data' : {
+                'r' : r,
+                'g' : g,
+                'b' : b
+            }
+        });
+    },
+
+    setTransition : function(id) {
+
+    },
+
+    setSpectrum : function(id) {
+
+    }
+ }
+
+/**
+ * Power timer and switch
+ */
 var powerManagement = {
 
     poweroff_slider : null,
@@ -399,96 +449,89 @@ var powerManagement = {
     },
 }
 
-
-/**
- * get leds state and update cotent acordingy..
- */
-
-
-
-
-
-
-/* ---------------------------------------------------
- tools
-*/
-var tools = {
-    RGBtoHSV : function(r,g,b) {
-    var computedH = 0;
-    var computedS = 0;
-    var computedV = 0;
-
-    //remove spaces from input RGB values, convert to int
-    var r = parseInt( (''+r).replace(/\s/g,''),10 ); 
-    var g = parseInt( (''+g).replace(/\s/g,''),10 ); 
-    var b = parseInt( (''+b).replace(/\s/g,''),10 ); 
-
-    if ( r==null || g==null || b==null ||
-        isNaN(r) || isNaN(g)|| isNaN(b) ) {
-        alert ('Please enter numeric RGB values!');
-        return;
-    }
-    if (r<0 || g<0 || b<0 || r>255 || g>255 || b>255) {
-        alert ('RGB values must be in the range 0 to 255.');
-        return;
-    }
-    r=r/255; g=g/255; b=b/255;
-    var minRGB = Math.min(r,Math.min(g,b));
-    var maxRGB = Math.max(r,Math.max(g,b));
-
-    // Black-gray-white
-    if (minRGB==maxRGB) {
-        computedV = minRGB;
-        return [0,0,computedV];
-    }
-
-    // Colors other than black-gray-white:
-    var d = (r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
-    var h = (r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
-    computedH = 60*(h - d/(maxRGB - minRGB));
-    computedS = (maxRGB - minRGB)/maxRGB;
-    computedV = maxRGB;
-
-    return {
-        h: computedH,
-        s: computedS,
-        v: computedV
-    };
-},
-
-HSVtoRGB : function (h, s, v) {
+function hsvToRgb(h, s, v) {
     var r, g, b, i, f, p, q, t;
-    if (arguments.length === 1) {
+
+    if (h && s === undefined && v === undefined) {
         s = h.s, v = h.v, h = h.h;
     }
+
     i = Math.floor(h * 6);
     f = h * 6 - i;
     p = v * (1 - s);
     q = v * (1 - f * s);
     t = v * (1 - (1 - f) * s);
+
     switch (i % 6) {
-        case 0: r = v, g = t, b = p; break;
-        case 1: r = q, g = v, b = p; break;
-        case 2: r = p, g = v, b = t; break;
-        case 3: r = p, g = q, b = v; break;
-        case 4: r = t, g = p, b = v; break;
-        case 5: r = v, g = p, b = q; break;
+        case 0:
+            r = v, g = t, b = p;
+            break;
+        case 1:
+            r = q, g = v, b = p;
+            break;
+        case 2:
+            r = p, g = v, b = t;
+            break;
+        case 3:
+            r = p, g = q, b = v;
+            break;
+        case 4:
+            r = t, g = p, b = v;
+            break;
+        case 5:
+            r = v, g = p, b = q;
+            break;
     }
+
     return {
-        r: Math.round(r * 255),
-        g: Math.round(g * 255),
-        b: Math.round(b * 255)
+        r: Math.floor(r * 255),
+        g: Math.floor(g * 255),
+        b: Math.floor(b * 255)
     };
-},
-
-RGBfromHV : function (r, g, b) {
-    var hsv = self.RGBtoHSV(r, g, b);
-    return self.HSVtoRGB(hsv.h, hsv.s, 1);
-},
-
-RGBtoHex : function (r, g, b) {
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-  }
-
 }
 
+function rgbToHsv(r, g, b) {
+    if (r && g === undefined && b === undefined) {
+        g = r.g, b = r.b, r = r.r;
+    }
+
+    r = r / 255, g = g / 255, b = b / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, v = max;
+
+    var d = max - min;
+    s = max == 0 ? 0 : d / max;
+
+    if (max == min) {
+        h = 0; // achromatic
+    } else {
+        switch (max) {
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
+        }
+        h /= 6;
+    }
+
+    return {h: h, s: s, v: v};
+}
+
+function hexToRgb(hex) {
+    var dec = parseInt(hex.charAt(0) == '#' ? hex.slice(1) : hex, 16);
+    return {r: dec >> 16, g: dec >> 8 & 255, b: dec & 255};
+}
+
+function rgbToHex(color) {
+    var componentToHex = function (c) {
+        var hex = c.toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+    };
+
+    return "#" + componentToHex(color.r) + componentToHex(color.g) + componentToHex(color.b);
+}

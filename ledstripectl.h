@@ -5,8 +5,14 @@
 #include <inttypes.h>
 #include <Ticker.h>
 #include "ledstripestate.h"
+#include "spectrum.h"
 #include "ledstripetrans.h"
+#include "ledstripetranscolor.h"
 #include "config.h"
+
+#ifdef ESP32
+    #include "ledstripereansspec.h"
+#endif
 
 using namespace std;
 
@@ -17,7 +23,7 @@ using namespace std;
 class LedStripeCtl
 {
 public:
-    LedStripeCtl(int a_pin_r, int a_pin_g, int a_pin_b, uint16_t a_duty_cycle) :
+    LedStripeCtl(int a_pin_r, int a_pin_g, int a_pin_b, uint16_t a_duty_cycle, SpectrumAnalyser * a_p_spec_analyser = nullptr) :
         call_time(millis()),
         call_time_delta(0),
         pin_r(a_pin_r),
@@ -41,8 +47,13 @@ public:
             peek_color = LedStripeState(0, 0, 0, 1);
             p_color = & base_color; // set current color to pimary one
 
-            for(LedStripeTrans trb : transitions_buffer)
-                trb = LedStripeTrans(duty_cycle);
+            // init color transitions
+            for(LedStripeTransColor trb : transitions_buffer)
+                trb = LedStripeTransColor(duty_cycle);
+#ifdef ESP32
+            // init spectrum transition
+            spectrum_transition = LedStripeTransSpectrum(a_duty_cycle, a_p_spec_analyser);
+#endif
         }
 
     // add internal external transition
@@ -170,7 +181,7 @@ public:
             {
                 //Serial.printf(" - picked up %p\r\n", &transitions_buffer[i]);
                 transitions_buffer[i].Setup(a_r, a_g, a_b, a_tr, a_tg, a_tb, a_time_ms);
-                AddTransition(&transitions_buffer[i]);
+                AddTransition((LedStripeTrans*)(&transitions_buffer[i]));
                 transitions_buffer[i].on_list = true;
                 return &transitions_buffer[i];
             }
@@ -178,12 +189,25 @@ public:
         return nullptr;
     }
 
+#ifdef ESP32
+    // use internal spectrum strnsition
+    LedStripeTrans * AddTransition(uint16_t a_r_hz_from, uint16_t a_r_hz_to, uint16_t a_g_hz_from, uint16_t a_g_hz_to, uint16_t a_b_hz_from, uint16_t a_b_hz_to)
+    {
+
+        spectrum_transition.SetRangeR(a_r_hz_from, a_r_hz_to);
+        spectrum_transition.SetRangeG(a_g_hz_from, a_g_hz_to);
+        spectrum_transition.SetRangeB(a_b_hz_from, a_b_hz_to);
+
+        AddTransition((LedStripeTrans*)(&spectrum_transition));
+    }
+#endif
+
     void ClearTransitions(void)
     {
         transitions = nullptr;
         current_transition = nullptr;
 
-        for(LedStripeTrans trb : transitions_buffer)
+        for(LedStripeTransColor trb : transitions_buffer)
         {
             trb.next = nullptr;
             trb.on_list = false;
@@ -243,13 +267,20 @@ protected:
     int pin_b;
     uint16_t duty_cycle;
 
-    LedStripeTrans transitions_buffer[MAX_STRIPE_TRANSITIONS];
+    LedStripeTransColor transitions_buffer[MAX_STRIPE_TRANSITIONS];
+#ifdef ESP32
+    LedStripeTransSpectrum spectrum_transition;
+#endif
     LedStripeState base_color;
     LedStripeState peek_color;
     LedStripeState * p_color;
     bool color_set_flag;
     bool in_color_peek;
     bool power;
+
+    uint16_t * p_spectrum_input_r;
+    uint16_t * p_spectrum_input_g;
+    uint16_t * p_spectrum_input_b;
 };
 
 #endif

@@ -27,23 +27,30 @@
     display : inline-block;
 }
 
+.input-quad-transp {
+    background: none !important;
+}
 
 .ui-btn.wide120 {
     width : 120px;
 }
 
 .saved-color-text {
-    text-shadow: 2px 2px 12px #000000;
-    color: #ffffff;
-}
-
-.saved-color-button {
-        margin-left: 5px;
+    font-size: large !important;
+    text-shadow: 2px 2px 12px #000000 !important;
+    color: #ffffff !important;
 }
 
 .saved-color-element {
     margin-top: 4px;
+    margin-left: 8px;
+    margin-right: 8px;
     padding: 10px;
 }
 
+.picker-color-text {
+    font-size: large !Important;
+    text-shadow: 3px 3px 18px #000000 !important;
+    color: #ffffff !important;
+}
 
