@@ -15,60 +15,56 @@
 </head>
 <body>
 <!-- ------------------------------------------- HEADER --------------------------------------  -->
-<div data-role="header" data-theme="a" data-position="fixed">
+<div data-role="header" data-theme="a" data-position="fixed" data-tap-toggle="false">
     <div data-role="navbar">
         <ul>
             <li><a href="#color-picker" data-icon="grid" data-transition="flow" class="ui-btn-active">Color Picker</a></li>
             <li><a href="#saved-colors" data-icon="star" data-transition="flow">Fav. Colors</a></li>
             <li><a href="#transition-sets" data-icon="clock" data-transition="flow">Transition</a></li>
-            <li><a href="#spectrum-analyser" data-icon="audio" data-transition="flow">Spectrum</a></li>
+            <!-- only for ESP23<li><a href="#spectrum-analyser" data-icon="audio" data-transition="flow">Spectrum</a></li> -->
             <li><a href="#settings" data-icon="gear" data-transition="flow">Settings</a></li>
         </ul>
-    </div><!-- /navbar -->
-</div><!-- /header -->
+    </div>
+</div>
 
 <!-- ------------------------------------------- FOTER --------------------------------------  -->
-<div data-role="footer" data-theme="a" data-position="fixed">
+<div data-role="footer" data-theme="a" data-position="fixed" data-tap-toggle="false">
     <div class="center-wrapper">
-        <select onchange="powerManagement.ajaxSetLedstripesPower(event.target)" id="power_sw" name="power_sw" data-role="slider">
-            <option value="off">Off</option>
-            <option value="on">On</option>
-        </select>
-        <!--label for="power_off_timer">power off timer</label-->
+            <select onchange="powerManagement.ajaxSetLedstripesPower(event.target)" id="power_sw" name="power_sw" data-role="slider"  style="vertical-align: super;">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+            <a href="#" id="falsh-sync-button" class="ui-btn ui-corner-all ui-icon-cloud ui-btn-icon-right" onclick="savedColors.sync()" style="vertical-align: top; border-color: grey">Save</a>
         <input oninput="{ powerManagement.poweroffTimer(event); }" type="range" name="power_off_timer" id="power_off_timer" min="0" max="120" value="0" data-show-value="true" data-popup-enabled="true">
-        <!--div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-cloud ui-btn-icon-notext saved-color-button">
-            <input type="button" data-enhanced="true" value="" onclick="savedColors.sync()">
-        </div-->
     </div>
-</div><!-- /footer -->
+</div>
 
 <!-- ------------------------------------------- LOADING --------------------------------------  -->
 <button id="loading_overlay" class="show-page-loading-msg" data-textonly="false" data-textvisible="true" data-msgtext="" data-inline="true">Loading...</button>
 
-
 <!-- ------------------------------------------- COLOR PICKER --------------------------------------  -->
 <div data-role="page" id="color-picker" data-title="Color Picker">
-	<div role="main" class="ui-content">
-        <h2 class="ui-bar ui-bar-a ui-corner-all center-wrapper">Color picker</h2>
-        <div class="ui-body ui-body-a ui-corner-all center-wrapper">
+	<div role="main" class="ui-content center-wrapper">
+        <!--h2 class="ui-bar ui-bar-a ui-corner-all center-wrapper">Color picker</h2-->
+        <!--div class="ui-body ui-body-a ui-corner-all center-wrapper"-->
             <canvas id="color_picker_canvas"></canvas>
             <div data-role="controlgroup" data-type="horizontal">
                 <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="0" id="stripe_color_A">A</div>
                 <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="1" id="stripe_color_B">B</div>
                 <div onclick="main_color_picker.editInput(event.target)" onchange="main_color_picker.editInput(event.target)" class="picker-color-text ui-btn ui-corner-all input-quad" data-stripe-id="2" id="stripe_color_C">C</div>
             </div>	
-        </div>
-	</div><!-- /content -->
-</div><!-- /page one -->
+        <!--/div-->
+	</div>
+</div>
 
 
 <!-- ------------------------------------------- SAVED COLORS --------------------------------------  -->
-<div data-role="page" id="saved-colors" data-theme="a" data-title="Saved Colors">
-	<div role="main">
-        <div id="saved_colors_list" >
+<div data-role="page" id="saved-colors" data-title="Saved Colors">
+	<div role="main" class="ui-content">
+        <div class="ui-field-contain"  id="saved_colors_list" >
             <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
-                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext"></a>
-                <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext"></a></div>
+                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'edit color' ,'test edit',{ r: 120, g:90, b:200}, 1);"></a>
+                <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(0); });"></a></div>
                 <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
                 <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">B</a></div>
                 <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
@@ -76,68 +72,61 @@
             </div>
         </div>
     </div>
-</div><!-- /page two -->
-
+</div>
 
 <!-- ------------------------------------------- TRANSITION SETS --------------------------------------  -->
-<div data-role="page" id="transition-sets" data-theme="a" data-title="Transition Sets">
+<div data-role="page" id="transition-sets" data-title="Transition Sets">
 	<div role="main" class="ui-content">
         <div class="ui-field-contain" id="transition_sets_list">
+            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" 
+            style="background: linear-gradient(0deg, 
+                
+                rgba(100,130,200,1) 0%, 
+                rgba(200,220,255,1) 15%,
+                rgba(100,130,200,1) 15%, 
+                rgba(100,130,200,1) 30%, 
+                rgba(100,130,200,1) 30%, 
+                rgba(100,130,200,1) 45%, 
+                rgba(100,130,200,1) 45%, 
+                rgba(100,130,200,1) 0%, 
+                
+                );">
 
-            <a href="#" class="ui-shadow ui-btn ui-corner-all saved-transition-set" style="background: linear-gradient(90deg,  rgba(10,100,100,1) 25%, rgba(120,200,200,1) 50%,  rgba(100,10,40,1) 75%, rgba(220,100,100,1) 100%);">
-                <div class="ui-grid-g">
-                    <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button" >
-                        <input type="button" data-enhanced="true" value="" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'message', 'color_name', {r: 120, g: 200, b: 50});">
-                    </div>
-                    <div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext saved-color-button" >
-                        <input type="button" data-enhanced="true" value="" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.delete(0); }, 'Do you realy want to remove?');" >
-                    </div>
-                </div>
-                <div class="saved-color-text">Sample color 1</div>
-            </a>
-
-            <a href="#" class="ui-shadow ui-btn ui-corner-all saved-color-element" style="background: linear-gradient(90deg,  rgba(0,210,140,1) 70%, rgba(10,200,200,1) 100%);">
-                <div class="ui-grid-g">
-                    <div class="ui-block-a ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext saved-color-button">
-                        <input type="button" data-enhanced="true" value="">
-                    </div>
-                    <div class="ui-block-b ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext saved-color-button">
-                        <input type="button" data-enhanced="true" value="">
-                    </div>
-                </div>
-                <div class="saved-color-text">Sample color 2</div>
-            </a>
-
-
-            <!-- ADD COLOR --> 
-            <button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.add(); }, true, 'Add color' ,'', {r: 120, g: 200, b: 50});">Add color</button>
+                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext"></a>
+                <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext"></a></div>
+                <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
+                <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">B</a></div>
+                <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
+                <div class="saved-color-text center-wrapper">demo color</div>
+            </div>
+            <button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowTransEditDialog(event.target, function() {  }, true, 'Add Transition' ,'', null);">Add transition</button>
         </div>
-	</div><!-- /content -->
-</div><!-- /page two -->
+	</div>
+</div>
 
 <!-- ------------------------------------------- SPECTRUM-ANALYSER --------------------------------------  -->
-<div data-role="page" id="spectrum-analyser" data-theme="a" data-title="Spectrum Analyser">
+<!-- only ESP32 
+    <div data-role="page" id="spectrum-analyser" data-theme="a" data-title="Spectrum Analyser">
 	<div role="main" class="ui-content">
 		
-	</div><!-- /content -->
-</div><!-- /page two -->
+	</div>
+</div> -->
+
 
 
 <!-- ------------------------------------------- SETTING --------------------------------------  -->
-<div data-role="page" id="settings" data-theme="a"  data-title="Settings">
-	<div role="main" class="ui-content">
-		<h2>Two</h2>
-	</div><!-- /content -->
-</div><!-- /page two -->
+<div data-role="page" id="settings" data-title="Settings">
+	<div role="main" class="ui-content"></div>
+</div>
 
 
 <!-- ------------------------------------------- DIALOGS --------------------------------------  -->
 <!-- ------------------------------------------- COLOR PEEK --------------------------------------  -->
 <div data-role="page" data-dialog="true"  id="color_peeker_dialog">
-	<div data-role="header" data-theme="b">
-		<h1>Peek color</h1>
-	</div><!-- /header -->
-	<div role="main" class="ui-content center-wrapper" >
+    <div data-role="header">
+        <h2>Peek color</h2>
+    </div>
+    <div role="main" class="ui-content center-wrapper" >
         <h4 id="color_peeker_dialog_text"></h4>
         <canvas id="color_dialog_canvas"></canvas>
         <div class="ui-btn ui-corner-all input-quead-mini" id="color_picker_color"></div>
@@ -147,30 +136,35 @@
             <a href="#" data-rel="back" class="ui-btn ui-shadow ui-corner-all ui-icon-delete ui-btn-b ui-btn-icon-left">Cancel</a>
             <a href="#" data-rel="back" id="color_peeker_dialog_OK" class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-b ui-btn-icon-right">OK</a>
         </div>
+    </div>
+</div>
 
-		
-    </div><!-- /content -->
-    <div data-role="footer">
-		<h4></h4>
-    </div><!-- /footer -->
-</div><!-- /page popup -->
+<!-- ------------------------------------------- TRANS EDIT --------------------------------------  -->
+<div data-role="page" data-dialog="true"  id="trans_edit_dialog">
+    <div data-role="header">
+        <h2>Transition</h2>
+    </div>
+	<div role="main" class="ui-content center-wrapper" >
+        <h4 id="trans_edit_dialog_text"></h4>
+        <canvas id="trans_edit_canvas"></canvas>
+        <input type="text" style="text-align:center;" name="text-basic" id="trans_edit_dialog_name" value="" maxlength="16" hidden>
+        <div data-role="controlgroup" data-type="horizontal">
+            <a href="#" data-rel="back" class="ui-btn ui-shadow ui-corner-all ui-icon-delete ui-btn-b ui-btn-icon-left">Cancel</a>
+            <a href="#" data-rel="back" id="trans_edit_dialogg_OK" class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-b ui-btn-icon-right">OK</a>
+        </div>
+    </div>
+</div>
 
 
 <!-- ------------------------------------------- CONFIRM POPUP --------------------------------------  -->
 <div data-role="page" data-dialog="true" id="confirmation_dialog">
-    <div data-role="header" data-theme="b">
-		<h1>Confirmation</h1>
-	</div><!-- /header -->
 	<div role="main" class="ui-content center-wrapper">
         <h2 id="confirmation_dialog_text"></h2>
 		<div data-role="controlgroup" data-type="horizontal">
             <a href="#" data-rel="back" class="ui-btn ui-shadow ui-corner-all ui-icon-delete ui-btn-b ui-btn-icon-left">Cancel</a>
             <a href="#" data-rel="back" id="confirmation_dialog_OK" class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-b ui-btn-icon-right">OK</a>
         </div>
-    </div><!-- /content -->
-    <div data-role="footer">
-		<h4></h4>
-    </div><!-- /footer -->
-</div><!-- /page popup -->     
+    </div>
+</div> 
 </body>
 </html>

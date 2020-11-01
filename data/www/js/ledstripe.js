@@ -34,7 +34,7 @@ window.onload = function() {
     main_color_picker = new KellyColorPicker({ 
         place : 'color_picker_canvas',
         method: 'quad',
-        size: window.innerWidth - window.innerWidth / 6,
+        size: window.innerWidth - window.innerWidth / 8,
         methodSwitch: true,
         userEvents : { 
         
@@ -148,13 +148,20 @@ var navigationHelpers = {
     init : function() {
         self.confirmation_dialog_text =  $('#confirmation_dialog_text');
         self.confirmation_dialog_OK = $('#confirmation_dialog_OK');
-        self.color_peeker_dialog_text = $('#color_peeker_dialog_text');
-        self.color_peeker_dialog_OK = $('#color_peeker_dialog_OK');
-        self.loading_overlay = $('#loading_overlay');
+        
         self.saved_colors_list = $('#saved_colors_list');
         self.color_peeker_dialog_text = $('#color_peeker_dialog_text');
         self.color_peeker_dialog_name = $('#color_peeker_dialog_name');
         self.color_peeker_dialog = $('#color_peeker_dialog');
+        self.color_peeker_dialog_OK = $('#color_peeker_dialog_OK');
+
+        self.transition_sets_list = $('#transition_sets_list');
+        self.trans_edit_dialog_text = $('#trans_edit_dialog_text');
+        self.trans_edit_dialog_name = $('#trans_edit_dialog_name');
+        self.trans_edit_dialog = $('#trans_edit_dialog');
+        self.trans_edit_dialog_OK = $('#color_peeker_dialog_OK');
+        
+        self.loading_overlay = $('#loading_overlay');
     },
 
     ShowLoadingOverlay : function() {
@@ -203,7 +210,7 @@ var navigationHelpers = {
         } else {
             self.color_peeker_dialog_name.hide();
         }
-        dialog_color_picker.rgb = {r: color.r, g: color.g, b: color.b};
+        //dialog_color_picker.rgb = {r: color.r, g: color.g, b: color.b};
         //resize picker to dialog
         var dialog_width = self.color_peeker_dialog.width();
         // setup main color picker
@@ -214,12 +221,38 @@ var navigationHelpers = {
         dialog_color_picker.getWheelCursor().lineWeight = 2;
         dialog_color_picker.resize(dialog_width - dialog_width / 3);
         // update to applay size options
+        dialog_color_picker.setColorByHex(rgb(color.r, color.g, color.b));
         dialog_color_picker.updateView(true);
 
         // bind handler
         self.color_peeker_dialog_OK.on('click', ok_handler);        
         $.mobile.changePage('#color_peeker_dialog');
     },
+
+    ShowTransEditDialog : function(src, ok_handler, set_name, message, set_values_array) {
+        self.trans_edit_dialog_OK.unbind('click');
+        if(message) {
+            self.trans_edit_dialog_text.text(message);
+        } else {
+            self.trans_edit_dialog_text.text("");
+        }
+        if(set_name) {
+            self.trans_edit_dialog_name.show();
+        } else {
+            self.trans_edit_dialog_name.hide();
+        }
+
+        if(set_values_array) {
+            // load array
+        } else {
+            // empty set
+        }
+        
+        
+        // bind handler
+        self.trans_edit_dialog_OK.on('click', ok_handler);        
+        $.mobile.changePage('#trans_edit_dialog');
+    }
 }
 
 
@@ -263,7 +296,7 @@ var savedColors = {
                 <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(`+ c.r +`,`+ c.g +`,`+ c.b +`,1) 40%, rgba(` + vc.r + `,` + vc.g + `,` + vc.b + `,1) 100%);">
                     <div class="ui-block-a">
                         <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, 1);"></a>
-                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, 1);"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(` + cid + `); });"></a>
                     </div>
                     <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(0, `+ c.r +`,`+ c.g +`,`+ c.b +`);">A</a></div>
                     <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(1, `+ c.r +`,`+ c.g +`,`+ c.b +`);">B</a></div>
@@ -336,6 +369,18 @@ var savedColors = {
 
 
 /**
+ * Color transition Editor
+ */
+var colorTransitionEditor = {
+
+    init : function() {
+
+    },
+
+    
+}
+
+/**
  * set stripe to color, transition or spectrum
  * enable color peek
  */
@@ -387,6 +432,7 @@ var powerManagement = {
     poweroff_slider : null,
     poweroff_slider_user_int : false,
     power_sw : null,
+    sync_switch : false,
 
     init : function() {
         self.poweroff_slider = $('#power_off_timer');
@@ -427,7 +473,17 @@ var powerManagement = {
             } else {
                 if($("#power_sw option:selected").val() != 'off')
                     self.power_sw.val("off").change();
-            }      
+            }
+            
+            if(jsondata.sync != 0 && !self.sync_switch) {
+                $("#falsh-sync-button").css("border-color", "brown");
+                $("#falsh-sync-button").css("border-width", "3px");
+                self.sync_switch = true;
+            } else if(jsondata.sync == 0 && self.sync_switch) {
+                $("#falsh-sync-button").css("border-color", "grey");
+                $("#falsh-sync-button").css("border-width", "1px");
+                self.sync_switch = false;
+            }
          });
     },
 

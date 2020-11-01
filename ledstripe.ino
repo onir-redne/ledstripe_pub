@@ -167,7 +167,7 @@ void WebRootHandler(void)
 // AJAX Set color
 void WebAjaxPeekColorHandler()
 {
-  Serial.printf("AJAX: %s", server.uri().c_str());
+  //Serial.printf("AJAX: %s", server.uri().c_str());
   int r = atoi(server.arg("r").c_str());
   int g = atoi(server.arg("g").c_str());
   int b = atoi(server.arg("b").c_str());
@@ -180,7 +180,7 @@ void WebAjaxPeekColorHandler()
   }
 
   server.send(200, content_plain);
-  Serial.println(" - 200");
+  //Serial.println(" - 200");
   color_peek_timer = DEFAULT_PEEK_COLOR_TOUT; // set timeout to restore default
 }
 
@@ -199,7 +199,7 @@ void WebAjaxUnsetPeekColorHandler()
 
 void WebAjaxSetColorHandler(void)
 {
-  Serial.printf("AJAX: %s", server.uri().c_str());
+  //Serial.printf("AJAX: %s", server.uri().c_str());
   int r = atoi(server.arg("r").c_str());
   int g = atoi(server.arg("g").c_str());
   int b = atoi(server.arg("b").c_str());
@@ -209,7 +209,7 @@ void WebAjaxSetColorHandler(void)
   {
     led_stripes[l]->SetColor(r, g, b);
     server.send(200, content_plain);
-    Serial.println(" - 200");
+    //Serial.println(" - 200");
     return;
   }
 
@@ -224,11 +224,16 @@ void WebAjaxGetStripesStateHandler(void)
 {
   char json_buffer[sizeof(led_stripes) * JSON_STRIPE_STATE_MAX + 32] = {0};
   int8_t i = 0;
+  uint8_t sync = 0;
   uint16_t offset = 0;
   const char * state = nullptr;
   Serial.printf("AJAX: %s", server.uri().c_str());
 
-  offset += sprintf(json_buffer + offset, "{\"power\":%d,\"timer\":%u, \"strp\":[", led_power, power_off_timer);
+  // chack if flash sync is required
+  if(saved_colors.SyncNeeded())
+    sync = 1;
+
+  offset += sprintf(json_buffer + offset, "{\"power\":%d,\"timer\":%u, \"sync\":%u, \"strp\":[", led_power, power_off_timer, sync);
 
   for(LedStripeCtl * sctl : led_stripes) 
   {
@@ -273,15 +278,13 @@ void WebAjaxSavedColorsSet(void)
 
 void WebAjaxSavedColorsGet(void)
 {
-  Serial.printf("AJAX: %s", server.uri().c_str());
+  Serial.printf("AJAX: %s\r\n", server.uri().c_str());
   char json_buffer[JSON_SAVED_COLOR_ENTRY * MAX_SAVED_COLORS] = {0};
   uint16_t offset = 0;
   uint8_t r = 0, g = 0, b = 0, set = 0, id = 0, cfree = 0, cmax = 0;
   char name [COLOR_NAME_LEN] = {0};
   cfree = saved_colors.GetFreeColorsCount();
   cmax = saved_colors.GetColorsCount();
-
-  Serial.printf("AJAX: %s", server.uri().c_str());
 
   offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"colors\": [", cmax, cfree);
   while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
