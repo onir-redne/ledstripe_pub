@@ -9,7 +9,8 @@
                 "C:\\Users\\onir\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\2.5.0-4-b40a506\\include\\**",
                 "C:\\Users\\onir\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\2.5.0-4-b40a506\\xtensa-lx106-elf\\include\\**",
                 "C:\\Users\\onir\\Documents\\Arduino\\libraries\\arduinoFFT\\src\\**",
-                "C:\\Users\\onir\\Documents\\Arduino\\libraries\\arduinoFFT\\**"
+                "C:\\Users\\onir\\Documents\\Arduino\\libraries\\arduinoFFT\\**",
+                "C:\\Users\\onir\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\2.7.4\\**"
             ],
             "forcedInclude": [],
             "intelliSenseMode": "gcc-x64"

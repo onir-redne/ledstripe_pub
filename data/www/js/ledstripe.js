@@ -28,6 +28,7 @@ window.onload = function() {
     navigationHelpers.init();
     powerManagement.init();
     stripeState.init();
+    colorTransitionEditor.init('svg_trans_editor');
 
     navigationHelpers.ShowLoadingOverlay();
 
@@ -47,16 +48,6 @@ window.onload = function() {
                 self.selectedInput.style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";          
                 self.selectedInput.value = self.getCurColorHex()
                 stripeState.setColor(self.selectedInput.getAttribute('data-stripe-id'), rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
-                // $.ajax({
-                //     'url' : '/ajax/setcolor',
-                //     'type' : 'GET',
-                //     'data' : {
-                //         'r' : rgbCurrent.r,
-                //         'g' : rgbCurrent.g,
-                //         'b' : rgbCurrent.b,
-                //         'l' : self.selectedInput.getAttribute('data-stripe-id')
-                //     }
-                // });
             }
         }
     });
@@ -74,15 +65,6 @@ window.onload = function() {
                 var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);      
                 document.getElementById('color_picker_color').style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";
                 stripeState.setColorPeek(rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
-                // $.ajax({
-                //     'url' : '/ajax/setpeek',
-                //     'type' : 'GET',
-                //     'data' : {
-                //         'r' : rgbCurrent.r,
-                //         'g' : rgbCurrent.g,
-                //         'b' : rgbCurrent.b
-                //     }
-                // });
             }
         }
     });
@@ -146,31 +128,31 @@ var navigationHelpers = {
     color_peeker_dialog : null,
 
     init : function() {
-        self.confirmation_dialog_text =  $('#confirmation_dialog_text');
-        self.confirmation_dialog_OK = $('#confirmation_dialog_OK');
+        this.confirmation_dialog_text =  $('#confirmation_dialog_text');
+        this.confirmation_dialog_OK = $('#confirmation_dialog_OK');
         
-        self.saved_colors_list = $('#saved_colors_list');
-        self.color_peeker_dialog_text = $('#color_peeker_dialog_text');
-        self.color_peeker_dialog_name = $('#color_peeker_dialog_name');
-        self.color_peeker_dialog = $('#color_peeker_dialog');
-        self.color_peeker_dialog_OK = $('#color_peeker_dialog_OK');
+        this.saved_colors_list = $('#saved_colors_list');
+        this.color_peeker_dialog_text = $('#color_peeker_dialog_text');
+        this.color_peeker_dialog_name = $('#color_peeker_dialog_name');
+        this.color_peeker_dialog = $('#color_peeker_dialog');
+        this.color_peeker_dialog_OK = $('#color_peeker_dialog_OK');
 
-        self.transition_sets_list = $('#transition_sets_list');
-        self.trans_edit_dialog_text = $('#trans_edit_dialog_text');
-        self.trans_edit_dialog_name = $('#trans_edit_dialog_name');
-        self.trans_edit_dialog = $('#trans_edit_dialog');
-        self.trans_edit_dialog_OK = $('#color_peeker_dialog_OK');
+        this.transition_sets_list = $('#transition_sets_list');
+        this.trans_edit_dialog_text = $('#trans_edit_dialog_text');
+        this.trans_edit_dialog_name = $('#trans_edit_dialog_name');
+        this.trans_edit_dialog = $('#trans_edit_dialog');
+        this.trans_edit_dialog_OK = $('#color_peeker_dialog_OK');
         
-        self.loading_overlay = $('#loading_overlay');
+        this.loading_overlay = $('#loading_overlay');
     },
 
     ShowLoadingOverlay : function() {
         //var loading_obj = $('#loading_overlay');
-        var theme =  self.loading_overlay.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme;
-        var msgText =  self.loading_overlay.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text;
-        var textVisible =  self.loading_overlay.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible;
-        var textonly = !! self.loading_overlay.jqmData( "textonly" );
-        var html =  self.loading_overlay.jqmData( "html" ) || "";
+        var theme =  this.loading_overlay.jqmData( "theme" ) || $.mobile.loader.prototype.options.theme;
+        var msgText =  this.loading_overlay.jqmData( "msgtext" ) || $.mobile.loader.prototype.options.text;
+        var textVisible =  this.loading_overlay.jqmData( "textvisible" ) || $.mobile.loader.prototype.options.textVisible;
+        var textonly = !! this.loading_overlay.jqmData( "textonly" );
+        var html =  this.loading_overlay.jqmData( "html" ) || "";
         $.mobile.loading( "show", {text: msgText, textVisible: textVisible, theme: theme, textonly: textonly, html: html});
     },
 
@@ -181,38 +163,38 @@ var navigationHelpers = {
     PageChangeHandler : function(event, ui) {
         if(ui.toPage[0].id == 'saved-colors') {
             this.ShowLoadingOverlay();
-            savedColors.load(self.saved_colors_list);
+            savedColors.load(this.saved_colors_list);
             this.HideLoadingOverlay();
         }
     },
 
     ShowConfirmationDialog : function(src, ok_handler, message) {
-        self.confirmation_dialog_OK.unbind('click');
+        this.confirmation_dialog_OK.unbind('click');
         if(message) {
-            self.confirmation_dialog_text.text(message);
+            this.confirmation_dialog_text.text(message);
         } else {
-            self.confirmation_dialog_text.text("Arey you sure?");
+            this.confirmation_dialog_text.text("Arey you sure?");
         }
         $.mobile.changePage('#confirmation_dialog');
-        self.confirmation_dialog_OK.on('click', ok_handler);  
+        this.confirmation_dialog_OK.on('click', ok_handler);  
     },
 
     ShowColorPickerDialog : function(src, ok_handler, set_name, message, color_name, color) {
-        self.color_peeker_dialog_OK.unbind('click');
+        this.color_peeker_dialog_OK.unbind('click');
         if(message) {
-            self.color_peeker_dialog_text.text(message);
+            this.color_peeker_dialog_text.text(message);
         } else {
-            self.color_peeker_dialog_text.text("");
+            this.color_peeker_dialog_text.text("");
         }
         if(set_name) {
-            self.color_peeker_dialog_name.show();
-            self.color_peeker_dialog_name.val(color_name)
+            this.color_peeker_dialog_name.show();
+            this.color_peeker_dialog_name.val(color_name)
         } else {
-            self.color_peeker_dialog_name.hide();
+            this.color_peeker_dialog_name.hide();
         }
         //dialog_color_picker.rgb = {r: color.r, g: color.g, b: color.b};
         //resize picker to dialog
-        var dialog_width = self.color_peeker_dialog.width();
+        var dialog_width = this.color_peeker_dialog.width();
         // setup main color picker
         dialog_color_picker.getWheel().width = 30;
         dialog_color_picker.getSvFigCursor().radius = 30;
@@ -221,25 +203,25 @@ var navigationHelpers = {
         dialog_color_picker.getWheelCursor().lineWeight = 2;
         dialog_color_picker.resize(dialog_width - dialog_width / 3);
         // update to applay size options
-        dialog_color_picker.setColorByHex(rgb(color.r, color.g, color.b));
+        dialog_color_picker.setColorByHex('#ffffff');
         dialog_color_picker.updateView(true);
 
         // bind handler
-        self.color_peeker_dialog_OK.on('click', ok_handler);        
+        this.color_peeker_dialog_OK.on('click', ok_handler);        
         $.mobile.changePage('#color_peeker_dialog');
     },
 
     ShowTransEditDialog : function(src, ok_handler, set_name, message, set_values_array) {
-        self.trans_edit_dialog_OK.unbind('click');
+        this.trans_edit_dialog_OK.unbind('click');
         if(message) {
-            self.trans_edit_dialog_text.text(message);
+            this.trans_edit_dialog_text.text(message);
         } else {
-            self.trans_edit_dialog_text.text("");
+            this.trans_edit_dialog_text.text("");
         }
         if(set_name) {
-            self.trans_edit_dialog_name.show();
+            this.trans_edit_dialog_name.show();
         } else {
-            self.trans_edit_dialog_name.hide();
+            this.trans_edit_dialog_name.hide();
         }
 
         if(set_values_array) {
@@ -250,7 +232,9 @@ var navigationHelpers = {
         
         
         // bind handler
-        self.trans_edit_dialog_OK.on('click', ok_handler);        
+        this.trans_edit_dialog_OK.on('click', ok_handler);        
+        // redraw
+        colorTransitionEditor.update();
         $.mobile.changePage('#trans_edit_dialog');
     }
 }
@@ -329,7 +313,7 @@ var savedColors = {
             'name': name},
             function(response) {
                 // reload colors on success
-                self.load();
+                this.load();
             });
     },
 
@@ -344,7 +328,7 @@ var savedColors = {
             'name': name},
             function(response) {
                 // reload colors on success
-                self.load();
+                this.load();
             });
     },
 
@@ -354,7 +338,7 @@ var savedColors = {
         $.getJSON('/ajax/savedcolors_del', {'id' : cid},
             function(response) {
                 // reload colors on success
-                self.load();
+                this.load();
             });
     },
 
@@ -362,7 +346,7 @@ var savedColors = {
         $.getJSON('/ajax/savedcolors_sync', {},
         function(response) {
             // reload colors on success
-            self.load();
+            this.load();
         });
     }
 }
@@ -372,13 +356,142 @@ var savedColors = {
  * Color transition Editor
  */
 var colorTransitionEditor = {
+    svg: null,
+    svg_defs: null,
+    transitions: [{
+        start: {
+        r: 255,
+        g: 0,
+        b: 0
+        },
+        stop: {
+        r: 50,
+        g: 80,
+        b: 250
+        },
+        time: 10000,
+        svg_obj: null,
+        svg_gradient: null,
+        int_name: 'stripe_1'
+    }, ],
+    max_transitions: 8,
+    max_time: 60000,
+    total_time: 10000,
+    max_tbar_height: 500,
+    max_tbar_width: 100,
+    tbar_x: 30,
+    tbar_y: 30,
+    time_scale: 1.0,
 
-    init : function() {
 
+    init: function(obj_id, x, y, width, heigth, max_time, max_trans) {
+        this.svg = document.getElementById(obj_id);
+        this.svg.setAttributeNS(null, 'viewBox', '0 0 200 ' + String(this.max_tbar_height + 60));
+        this.svg_defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        this.svg.appendChild(this.svg_defs);
+        this.time_scale = this.max_tbar_height / this.max_time * this.max_transitions;
     },
 
     
+    /**
+     * Setup new transition edit
+     * @param {Array} trans_array input transitions array: {start: {r: Number, g: Number, b: Number}, stop: {r: Number, g: Number, b: Number}, time: Number, name: String}
+     */
+    setupTransitions : function(trans_array) {
+        // if not passe set one initial transition
+        for(i = 0; i < trans_array.length; i++) {
+            this.appdendTransition(trans_array[i]);
+        }
+
+        this.updateBar();
+    },
+            
+    appdendTransition : function(trans) {
+        var int_trans = {
+            start: trans.start,
+            stop: trans.stop,
+            time: trans.time,
+            svg_obj: null,  //stripe svg object
+            svg_gradient: null,     // related gradient (for color updates)
+            svg_start_bar: null,    // top bar 
+            svg_stop_bar: null,    // bottom bar
+            svg_info_box: null,     // box with informations (time)
+            svg_fine_tune: null,    // dragabble fine tunne (for precise time setting)
+            svgh_onmouse_down: null,
+            svgh_onmouse_up: null,
+            svgh_onmouse_move: null,
+            int_name: 'svg_tredt_gradient_' + trans.name.replace(/\s+/g, ''),
+            name: trans.name
+        };
+
+        this.genGradients(int_trans);
+        this.makeSvgTrnasition(int_trans);
+        this.transitions.push(trans);
+        
+    },
+
+    removeTransition : function() {
+
+    },
+
+    /**
+     * Generate or update gradients for transformations
+     */
+    genGradients : function(int_trans) {
+        if(int_trans.svg_gradient == null) {
+            int_trans.svg_gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            int_trans.svg_gradient.setAttributeNS(null, 'id', 'svg_gradient_' + int_trans.int_name);
+            int_trans.svg_gradient.setAttributeNS(null, 'gradientTransform', 'rotate(90)');
+            var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttributeNS(null, 'offset', '50%');
+            stop1.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.start.r +', '+int_trans.start.g +', '+ int_trans.start.b +')');
+            stop2.setAttributeNS(null, 'offset', '100%');
+            stop2.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
+            
+            
+            // append ranges to gradient
+            int_trans.svg_gradient.appendChild(stop1);
+            int_trans.svg_gradient.appendChild(stop2);
+            
+            // add gradient to defs
+            this.svg_defs.appendChild(int_trans.svg_gradient);
+        } 
+    },
+
+    makeSvgTrnasition : function(int_trans) {
+        var tmp_bar_start = this.tbar_y;
+        var tmp_bar_end = this.tbar_y;
+        tmp_bar_end += int_trans.time * this.time_scale;
+        int_trans.svg_obj = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        int_trans.svg_obj.setAttributeNS(null, 'width', this.max_tbar_width);
+        int_trans.svg_obj.setAttributeNS(null, 'height', tmp_bar_end);
+        int_trans.svg_obj.setAttributeNS(null, 'x', this.tbar_x);
+        int_trans.svg_obj.setAttributeNS(null, 'y', tmp_bar_start);
+        int_trans.svg_obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
+        this.svg.appendChild(int_trans.svg_obj);
+    },
+    
+    /**
+     * redraw with new parameters
+     */
+    updateBar: function() {
+        var tmp_bar_start = this.tbar_y;
+        var tmp_bar_end = this.tbar_y;
+
+        for (i = 0; i < this.transitions.length; i++) {
+            tmp_bar_end += this.transitions[i].time * tscale;
+            // update size and position
+            this.transitions[i].svg_obj.setAttributeNS(null, 'height', tmp_bar_end);
+            this.transitions[i].svg_obj.setAttributeNS(null, 'y', tmp_bar_start);
+            tmp_bar_start = tmp_bar_end; // next statrts and the end
+        }
+    },
+
+    update: function() {
+    }
 }
+
 
 /**
  * set stripe to color, transition or spectrum
@@ -435,11 +548,11 @@ var powerManagement = {
     sync_switch : false,
 
     init : function() {
-        self.poweroff_slider = $('#power_off_timer');
-        self.power_sw = $('#power_sw');
+        this.poweroff_slider = $('#power_off_timer');
+        this.power_sw = $('#power_sw');
         // attach power timer event handler
-        self.poweroff_slider.on("slidestart", powerManagement.poweroffTimerOnSlideStart);
-        self.poweroff_slider.on("slidestop", powerManagement.poweroffTimerOnSlideEnd);
+        this.poweroff_slider.on("slidestart", powerManagement.poweroffTimerOnSlideStart);
+        this.poweroff_slider.on("slidestop", powerManagement.poweroffTimerOnSlideEnd);
     },
 
     ajaxSetLedstripesPowerTimer : function(time) {
@@ -453,7 +566,7 @@ var powerManagement = {
     },
 
     ajaxSetLedstripesPower : function(self) {
-        if(self.value == 'on') {
+        if(this.value == 'on') {
             $.ajax({'url' : '/ajax/poweron'});
         } else {
             $.ajax({'url' : '/ajax/poweroff'});
@@ -463,45 +576,45 @@ var powerManagement = {
     ajaxGetLestripesState : function() {
         $.getJSON('/ajax/getstripesstate', function(jsondata) {
             
-            if(!self.poweroff_slider_user_int) {
-                self.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
-                self.poweroff_slider.slider( "refresh" );
+            if(!this.poweroff_slider_user_int) {
+                this.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
+                this.poweroff_slider.slider( "refresh" );
             }
             if(jsondata.power == 1) {
                 if($("#power_sw option:selected").val() != 'on')
-                    self.power_sw.val("on").change();
+                    this.power_sw.val("on").change();
             } else {
                 if($("#power_sw option:selected").val() != 'off')
-                    self.power_sw.val("off").change();
+                    this.power_sw.val("off").change();
             }
             
-            if(jsondata.sync != 0 && !self.sync_switch) {
+            if(jsondata.sync != 0 && !this.sync_switch) {
                 $("#falsh-sync-button").css("border-color", "brown");
                 $("#falsh-sync-button").css("border-width", "3px");
-                self.sync_switch = true;
-            } else if(jsondata.sync == 0 && self.sync_switch) {
+                this.sync_switch = true;
+            } else if(jsondata.sync == 0 && this.sync_switch) {
                 $("#falsh-sync-button").css("border-color", "grey");
                 $("#falsh-sync-button").css("border-width", "1px");
-                self.sync_switch = false;
+                this.sync_switch = false;
             }
          });
     },
 
     poweroffTimerOnSlideStart : function(event, ui) {
-        self.poweroff_slider_user_int = true;   // prevent updating when user interacts
+        this.poweroff_slider_user_int = true;   // prevent updating when user interacts
     },
 
     poweroffTimerOnSlideEnd : function(event, ui) {
         //event.preventDefault();
         //event.stopPropagation();
-        powerManagement.ajaxSetLedstripesPowerTimer(self.poweroff_slider.val());
-        self.poweroff_slider_user_int = false;
+        powerManagement.ajaxSetLedstripesPowerTimer(this.poweroff_slider.val());
+        this.poweroff_slider_user_int = false;
     },
 
     poweroffTimerOnChange : function(event, ui) {
         //event.preventDefault();
         //event.stopPropagation();
-        //powerManagement.ajaxSetLedstripesPowerTimer(self.poweroff_slider.val());
+        //powerManagement.ajaxSetLedstripesPowerTimer(this.poweroff_slider.val());
     },
 }
 
