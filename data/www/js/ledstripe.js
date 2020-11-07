@@ -15,6 +15,7 @@
  * you want to me to add credits or licensing information please contact me.
  * RGBtoHSV() found on: http://javascripter.net/faq/rgb2hsv.htm
  * HSVtoRGB() found on: https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
+ * SVG draggable found on: https://github.com/petercollingridge/code-for-blog/tree/master/svg-interaction
  */ 
 
 var updateTimer = null;
@@ -234,7 +235,13 @@ var navigationHelpers = {
         // bind handler
         this.trans_edit_dialog_OK.on('click', ok_handler);        
         // redraw
-        colorTransitionEditor.update();
+        colorTransitionEditor.setupTransitions([
+            {start: {r: 0, g: 0, b: 0}, stop: {r: 190, g: 220, b: 200}, time: 56000, name: 'stripe e'}, 
+            {start: {r: 180, g: 0, b: 0}, stop: {r: 50, g: 80, b: 200}, time: 10000, name: 'stripe a'}, 
+            {start: {r: 50, g: 80, b: 200}, stop: {r: 0, g: 180, b: 50}, time: 5000, name: 'stripe b'},
+            {start: {r: 0, g: 180, b: 50}, stop: {r: 50, g: 200, b: 120}, time: 1500, name: 'stripe c'},
+            {start: {r: 59, g: 90, b: 0}, stop: {r: 190, g: 220, b: 10}, time: 41000, name: 'stripe f'}, 
+        ]);
         $.mobile.changePage('#trans_edit_dialog');
     }
 }
@@ -358,138 +365,327 @@ var savedColors = {
 var colorTransitionEditor = {
     svg: null,
     svg_defs: null,
-    transitions: [{
-        start: {
-        r: 255,
-        g: 0,
-        b: 0
-        },
-        stop: {
-        r: 50,
-        g: 80,
-        b: 250
-        },
-        time: 10000,
-        svg_obj: null,
-        svg_gradient: null,
-        int_name: 'stripe_1'
-    }, ],
+    svg_ruller: null,
+    svg_add_button: null,
+    transitions: [],
     max_transitions: 8,
     max_time: 60000,
-    total_time: 10000,
-    max_tbar_height: 500,
-    max_tbar_width: 100,
-    tbar_x: 30,
-    tbar_y: 30,
+    total_time: 0,
+    tbar_height: 400,
+    tbar_width: 60,
+    tbar_x: 50,
+    tbar_y: 5,
+    tsep_heigth: 10,
+    tsep_width_mod: 1,
+    tstops_hieght : 20,
     time_scale: 1.0,
-
-
+    ruller_width: 5,
+    ruller_resolution: 1.0,
+    selectedElement: false,
+    offset: null, 
+    transform: null,
+    
     init: function(obj_id, x, y, width, heigth, max_time, max_trans) {
         this.svg = document.getElementById(obj_id);
-        this.svg.setAttributeNS(null, 'viewBox', '0 0 200 ' + String(this.max_tbar_height + 60));
+        this.svg.setAttributeNS(null, 'viewBox', '0 0 200 ' + String(this.tbar_height + 60));
         this.svg_defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         this.svg.appendChild(this.svg_defs);
-        this.time_scale = this.max_tbar_height / this.max_time * this.max_transitions;
+        //this.svg_add_button = document.createElementNS('http://www.w3.org/2000/svg', 'defs');        
+
+        this.svg.addEventListener('mousedown', this.startDrag);
+        this.svg.addEventListener('mousemove', this.drag);
+        this.svg.addEventListener('mouseup', this.endDrag);
+        this.svg.addEventListener('mouseleave', this.endDrag);
+        this.svg.addEventListener('touchstart', this.startDrag);
+        this.svg.addEventListener('touchmove', this.drag);
+        this.svg.addEventListener('touchend', this.endDrag);
+        this.svg.addEventListener('touchleave', this.endDrag);
+        this.svg.addEventListener('touchcancel', this.endDrag);
     },
 
+    getMousePosition : function(evt) {
+        var CTM = colorTransitionEditor.svg.getScreenCTM();
+        if (evt.touches) { evt = evt.touches[0]; }
+        return {
+          x: (evt.clientX - CTM.e) / CTM.a,
+          y: (evt.clientY - CTM.f) / CTM.d
+        };
+    },
     
+    startDrag : function(evt) {
+        if (evt.target.classList.contains('draggable')) {
+            colorTransitionEditor.selectedElement = evt.target;
+
+            for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
+                if(colorTransitionEditor.transitions[i].svg.obj == colorTransitionEditor.selectedElement) {
+                    // make tompost
+                }
+            }
+            
+            colorTransitionEditor.offset = colorTransitionEditor.getMousePosition(evt);
+            // Make sure the first transform on the element is a translate transform
+            var transforms = colorTransitionEditor.selectedElement.transform.baseVal;
+
+            if (transforms.length === 0 || transforms.getItem(0).type !== SVGTransform.SVG_TRANSFORM_TRANSLATE) {
+                // Create an transform that translates by (0, 0)
+                var translate = colorTransitionEditor.svg.createSVGTransform();
+                translate.setTranslate(0, 0);
+                colorTransitionEditor.selectedElement.transform.baseVal.insertItemBefore(translate, 0);
+            }
+            // Get initial translation
+            colorTransitionEditor.transform = transforms.getItem(0);
+            colorTransitionEditor.offset.x -= colorTransitionEditor.transform.matrix.e;
+            colorTransitionEditor.offset.y -= colorTransitionEditor.transform.matrix.f;
+
+        }
+    },
+
+    drag : function(evt) {
+        if (colorTransitionEditor.selectedElement) {
+          evt.preventDefault();
+          var coord = colorTransitionEditor.getMousePosition(evt);
+          colorTransitionEditor.transform.setTranslate(coord.x - colorTransitionEditor.offset.x, coord.y - colorTransitionEditor.offset.y);
+        }
+    },
+
+    endDrag : function(evt) {
+        // if moved far to left remove from array
+        var i = 0
+        if(colorTransitionEditor.transform) {
+            if(colorTransitionEditor.transform.matrix.e > colorTransitionEditor.tbar_width + colorTransitionEditor.tbar_width / 2) {
+                for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
+                    if(colorTransitionEditor.transitions[i].svg.obj == colorTransitionEditor.selectedElement) {
+                        colorTransitionEditor.transitions[i].svg.obj.remove();
+                        colorTransitionEditor.transitions[i].svg.g.remove();
+                        colorTransitionEditor.transitions.splice(i, 1);
+                        break;
+                    }
+                } 
+            }
+
+            // if moved up or dowb further tgen next or previous swap
+
+            // finally start animating back
+            colorTransitionEditor.recalcPositions();
+            colorTransitionEditor.refresh();
+            colorTransitionEditor.transform.setTranslate(0, 0);
+            colorTransitionEditor.selectedElement = false;
+        }
+    },
+
     /**
      * Setup new transition edit
      * @param {Array} trans_array input transitions array: {start: {r: Number, g: Number, b: Number}, stop: {r: Number, g: Number, b: Number}, time: Number, name: String}
      */
     setupTransitions : function(trans_array) {
-        // if not passe set one initial transition
-        for(i = 0; i < trans_array.length; i++) {
+        // remove all transitions
+        this.removeTransitions();
+
+        // add new ones
+        for(var i = 0; i < trans_array.length; i++) {
             this.appdendTransition(trans_array[i]);
         }
 
-        this.updateBar();
+        this.refresh();
     },
-            
+
     appdendTransition : function(trans) {
         var int_trans = {
             start: trans.start,
             stop: trans.stop,
             time: trans.time,
-            svg_obj: null,  //stripe svg object
-            svg_gradient: null,     // related gradient (for color updates)
-            svg_start_bar: null,    // top bar 
-            svg_stop_bar: null,    // bottom bar
-            svg_info_box: null,     // box with informations (time)
-            svg_fine_tune: null,    // dragabble fine tunne (for precise time setting)
-            svgh_onmouse_down: null,
-            svgh_onmouse_up: null,
-            svgh_onmouse_move: null,
+            svg: {
+                g: null,
+                obj: null,  //stripe svg object
+                gradient: null,     // related gradient (for color updates)
+                gradient_stop1: null,
+                gradient_stop2: null,
+                start_bar: null,    // top bar 
+                stop_bar: null,    // bottom bar
+                info_box: null,     // box with informations (time)
+                fine_tune: null,    // dragabble fine tunne (for precise time setting)
+            },
+            handlers: {
+                svgh_onmouse_down: null,
+                svgh_onmouse_up: null,
+                svgh_onmouse_move: null,
+            },
+            position: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            },
+            current_start_y: 0,
+            current_end_y: 0,
             int_name: 'svg_tredt_gradient_' + trans.name.replace(/\s+/g, ''),
             name: trans.name
         };
-
-        this.genGradients(int_trans);
+        this.transitions.push(int_trans);
+        this.recalcPositions();     // recalculate positions and dimensions
         this.makeSvgTrnasition(int_trans);
-        this.transitions.push(trans);
-        
     },
 
-    removeTransition : function() {
-
+    removeTransitions : function() {
+        for(var i = 0; i < this.transitions.length; i++) {
+            for (const key in this.transitions[i].svg) {
+                if (this.transitions[i].svg.hasOwnProperty(key) && this.transitions[i].svg[key] != null ) {
+                    this.transitions[i].svg[key].remove();
+                }
+            }
+        }
+        this.transitions = [];
     },
 
-    /**
-     * Generate or update gradients for transformations
-     */
-    genGradients : function(int_trans) {
-        if(int_trans.svg_gradient == null) {
-            int_trans.svg_gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            int_trans.svg_gradient.setAttributeNS(null, 'id', 'svg_gradient_' + int_trans.int_name);
-            int_trans.svg_gradient.setAttributeNS(null, 'gradientTransform', 'rotate(90)');
-            var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop1.setAttributeNS(null, 'offset', '50%');
-            stop1.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.start.r +', '+int_trans.start.g +', '+ int_trans.start.b +')');
-            stop2.setAttributeNS(null, 'offset', '100%');
-            stop2.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
-            
-            
-            // append ranges to gradient
-            int_trans.svg_gradient.appendChild(stop1);
-            int_trans.svg_gradient.appendChild(stop2);
-            
-            // add gradient to defs
-            this.svg_defs.appendChild(int_trans.svg_gradient);
-        } 
-    },
+    recalcPositions : function() {
+        var y_offset = 0;
+        this.total_time = 0;
+        this.time_scale = 1.0;
+        var sep_height_total = 0;
 
-    makeSvgTrnasition : function(int_trans) {
-        var tmp_bar_start = this.tbar_y;
-        var tmp_bar_end = this.tbar_y;
-        tmp_bar_end += int_trans.time * this.time_scale;
-        int_trans.svg_obj = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        int_trans.svg_obj.setAttributeNS(null, 'width', this.max_tbar_width);
-        int_trans.svg_obj.setAttributeNS(null, 'height', tmp_bar_end);
-        int_trans.svg_obj.setAttributeNS(null, 'x', this.tbar_x);
-        int_trans.svg_obj.setAttributeNS(null, 'y', tmp_bar_start);
-        int_trans.svg_obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
-        this.svg.appendChild(int_trans.svg_obj);
-    },
-    
-    /**
-     * redraw with new parameters
-     */
-    updateBar: function() {
-        var tmp_bar_start = this.tbar_y;
-        var tmp_bar_end = this.tbar_y;
+        // prepare time scale
+        for (var i = 0; i < this.transitions.length; i++) {
+            this.total_time += this.transitions[i].time;
+            //sep_height_total +=(2 * this.tsep_heigth);
+        }
+        //this.time_scale = (this.tbar_height - (sep_height_total))  / this.total_time;
+        this.time_scale = this.tbar_height  / this.total_time;
 
-        for (i = 0; i < this.transitions.length; i++) {
-            tmp_bar_end += this.transitions[i].time * tscale;
-            // update size and position
-            this.transitions[i].svg_obj.setAttributeNS(null, 'height', tmp_bar_end);
-            this.transitions[i].svg_obj.setAttributeNS(null, 'y', tmp_bar_start);
-            tmp_bar_start = tmp_bar_end; // next statrts and the end
+        for (var i = 0; i < this.transitions.length; i++) {
+            this.transitions[i].position.x = this.tbar_x;
+            //this.transitions[i].position.y = this.tbar_y + y_offset + this.tsep_heigth;
+            this.transitions[i].position.y = this.tbar_y + y_offset;
+            this.transitions[i].position.width = this.tbar_width;
+            this.transitions[i].position.height = this.transitions[i].time * this.time_scale;
+            //y_offset += this.transitions[i].position.height + 2 * this.tsep_heigth;
+            y_offset += this.transitions[i].position.height;
         }
     },
 
-    update: function() {
-    }
+    /**
+     * Create transition elements
+     * @param {Object} int_trans 
+     */
+    makeSvgTrnasition : function(int_trans) {
+        // svg gradient
+        if(int_trans.svg.gradient == null) {
+            int_trans.svg.gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            int_trans.svg.gradient.setAttributeNS(null, 'id', 'svg_gradient_' + int_trans.int_name);
+            int_trans.svg.gradient.setAttributeNS(null, 'gradientTransform', 'rotate(90)');
+            int_trans.svg.gradient_stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            int_trans.svg.gradient_stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            int_trans.svg.gradient_stop1.setAttributeNS(null, 'offset', '0%');
+            int_trans.svg.gradient_stop1.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.start.r +', '+ int_trans.start.g +', '+ int_trans.start.b +')');
+            int_trans.svg.gradient_stop2.setAttributeNS(null, 'offset', '100%');
+            int_trans.svg.gradient_stop2.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
+            
+            // append ranges to gradient
+            int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop1);
+            int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop2);
+            
+            // add gradient to defs
+            this.svg_defs.appendChild(int_trans.svg.gradient);
+        } 
+
+        // main gradient stripe
+        if(int_trans.svg.obj == null) {
+
+            int_trans.svg.obj = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            int_trans.svg.obj.setAttributeNS(null, 'width', int_trans.position.width);
+            int_trans.svg.obj.setAttributeNS(null, 'height',  int_trans.position.height);    // will be recalculated later
+            int_trans.svg.obj.setAttributeNS(null, 'x', int_trans.position.x);
+            int_trans.svg.obj.setAttributeNS(null, 'y', int_trans.position.y);
+            int_trans.svg.obj.setAttributeNS(null, 'rx', '3');
+            int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
+            int_trans.svg.obj.setAttributeNS(null, 'class', "draggable");
+            this.svg.appendChild(int_trans.svg.obj);
+        }
+
+        // terminator 1
+        /*if(int_trans.svg.start_bar == null) {
+            var p1_x = int_trans.position.x - this.tsep_width_mod;
+            var p1_y = int_trans.position.y;
+            var p2_x = int_trans.position.x + int_trans.position.width / 2.0;
+            var p2_y = int_trans.position.y - this.tsep_heigth;
+            var p3_x = int_trans.position.x + int_trans.position.width + this.tsep_width_mod;
+            var p3_y = int_trans.position.y;
+            
+            int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            int_trans.svg.start_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
+            int_trans.svg.start_bar.setAttributeNS(null, 'fill', 'rgb('+ int_trans.start.r +', '+int_trans.start.g +', '+ int_trans.start.b +')');
+            //int_trans.svg.start_bar.setAttributeNS(null, 'fill-opacity', '0.3');
+            int_trans.svg.start_bar.setAttributeNS(null, 'stroke', 'white');
+            this.svg.appendChild(int_trans.svg.start_bar);
+        }
+
+        if(int_trans.svg.stop_bar == null) {
+            var p1_x = int_trans.position.x - this.tsep_width_mod;
+            var p1_y = int_trans.position.y + int_trans.position.height;
+            var p2_x = int_trans.position.x + int_trans.position.width / 2.0;
+            var p2_y = int_trans.position.y + this.tsep_heigth + int_trans.position.height;
+            var p3_x = int_trans.position.x + int_trans.position.width + this.tsep_width_mod;
+            var p3_y = int_trans.position.y + int_trans.position.height;
+            
+            int_trans.svg.stop_bar = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            int_trans.svg.stop_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
+            int_trans.svg.stop_bar.setAttributeNS(null, 'fill', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
+            //int_trans.svg.stop_bar.setAttributeNS(null, 'fill-opacity', '0.3');
+            int_trans.svg.stop_bar.setAttributeNS(null, 'stroke', 'white');
+            this.svg.appendChild(int_trans.svg.stop_bar);
+        }*/
+    },
+
+    refresh : function() {
+        for (var i = 0; i < this.transitions.length; i++) {
+            if(this.transitions[i].svg.gradient != null) {
+                this.transitions[i].svg.gradient_stop1.setAttributeNS(null, 'offset', '0%');
+                this.transitions[i].svg.gradient_stop1.setAttributeNS(null, 'stop-color', 'rgb('+ this.transitions[i].start.r +', '+ this.transitions[i].start.g +', '+ this.transitions[i].start.b +')');
+                this.transitions[i].svg.gradient_stop2.setAttributeNS(null, 'offset', '100%');
+                this.transitions[i].svg.gradient_stop2.setAttributeNS(null, 'stop-color', 'rgb('+ this.transitions[i].stop.r +', '+ this.transitions[i].stop.g +', '+ this.transitions[i].stop.b +')');
+            } 
+    
+            // main gradient stripe
+            if(this.transitions[i].svg.obj != null) {
+                this.transitions[i].svg.obj.setAttributeNS(null, 'width', this.transitions[i].position.width);
+                this.transitions[i].svg.obj.setAttributeNS(null, 'height',  this.transitions[i].position.height);    // will be recalculated later
+                this.transitions[i].svg.obj.setAttributeNS(null, 'x', this.transitions[i].position.x);
+                this.transitions[i].svg.obj.setAttributeNS(null, 'y', this.transitions[i].position.y);
+            }
+    
+            // terminator 1
+            /*if(this.transitions[i].svg.start_bar != null) {
+    
+                var p1_x = this.transitions[i].position.x - this.tsep_width_mod;
+                var p1_y = this.transitions[i].position.y;
+                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width / 2.0;
+                var p2_y = this.transitions[i].position.y - this.tsep_heigth;
+                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + this.tsep_width_mod;
+                var p3_y = this.transitions[i].position.y;
+                
+                this.transitions[i].svg.start_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
+                this.transitions[i].svg.start_bar.setAttributeNS(null, 'fill', 'rgb('+ this.transitions[i].start.r +', '+this.transitions[i].start.g +', '+ this.transitions[i].start.b +')');
+            }
+    
+            if(this.transitions[i].svg.stop_bar != null) {
+                var p1_x = this.transitions[i].position.x - this.tsep_width_mod;
+                var p1_y = this.transitions[i].position.y + this.transitions[i].position.height;
+                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width / 2.0;
+                var p2_y = this.transitions[i].position.y + this.tsep_heigth + this.transitions[i].position.height;
+                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + this.tsep_width_mod;
+                var p3_y = this.transitions[i].position.y + this.transitions[i].position.height;
+                
+                this.transitions[i].svg.stop_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
+                this.transitions[i].svg.stop_bar.setAttributeNS(null, 'fill', 'rgb('+ this.transitions[i].stop.r +', '+ this.transitions[i].stop.g +', '+ this.transitions[i].stop.b +')');
+            }*/
+        }
+
+        // draw other elements:
+
+        // ruller
+
+
+
+    },
 }
 
 

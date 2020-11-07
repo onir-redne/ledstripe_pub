@@ -65,9 +65,11 @@
             <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
                 <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'edit color' ,'test edit',{ r: 120, g:90, b:200}, 1);"></a>
                 <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(0); });"></a></div>
-                <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
-                <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">B</a></div>
-                <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
+
+                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all  saved-color-text input-quad-transp">A</a></div>
+                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all saved-color-text input-quad-transp">B</a></div>
+                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all saved-color-text input-quad-transp">C</a></div>
+
                 <div class="saved-color-text center-wrapper">demo color</div>
             </div>
         </div>
