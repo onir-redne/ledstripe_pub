@@ -54,7 +54,13 @@
     color: #ffffff !important;
 }
 
-svg-trans-container {
+.svg-trans-container {
     width: 100%;
     height: 300px;
 }
+
+.svg-rect-shadow {
+    -webkit-filter: drop-shadow( 4px 4px 3px rgba(0, 0, 0, .7));
+    filter: drop-shadow( 4px 4px 3px rgba(0, 0, 0, .7));
+}
+

@@ -29,7 +29,7 @@ window.onload = function() {
     navigationHelpers.init();
     powerManagement.init();
     stripeState.init();
-    colorTransitionEditor.init('svg_trans_editor');
+    colorTransitionEditor.init('svg_trans_editor', 0, 0, 200, 300, 60000, 8);
 
     navigationHelpers.ShowLoadingOverlay();
 
@@ -366,11 +366,16 @@ var colorTransitionEditor = {
     svg: null,
     svg_defs: null,
     svg_ruller: null,
+   //svg_shadow_filter: null,
     svg_add_button: null,
     transitions: [],
     max_transitions: 8,
     max_time: 60000,
     total_time: 0,
+    page_width: 100,
+    page_height: 400,
+    page_x: 0,
+    page_y: 0,
     tbar_height: 400,
     tbar_width: 60,
     tbar_x: 50,
@@ -384,13 +389,29 @@ var colorTransitionEditor = {
     selectedElement: false,
     offset: null, 
     transform: null,
+    date_obj: null,
+    elements_couner: 0,
     
     init: function(obj_id, x, y, width, heigth, max_time, max_trans) {
+
+        this.page_width = width;
+        this.page_height = heigth
+        this.page_x = x;
+        this.page_y = y;
+        this.max_time = max_time;
+        this.max_transitions = max_trans;
+        this.tbar_width = this.page_width * 0.5;
+        this.tbar_height = this.page_height - 10;
+        this.tbar_x = this.page_width / 2 - this.tbar_width / 2;
+        this.date_obj = new Date();
+
+
         this.svg = document.getElementById(obj_id);
         this.svg.setAttributeNS(null, 'viewBox', '0 0 200 ' + String(this.tbar_height + 60));
         this.svg_defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         this.svg.appendChild(this.svg_defs);
-        //this.svg_add_button = document.createElementNS('http://www.w3.org/2000/svg', 'defs');        
+        this.svg_add_button = document.getElementById('svg_append_button');
+
 
         this.svg.addEventListener('mousedown', this.startDrag);
         this.svg.addEventListener('mousemove', this.drag);
@@ -415,13 +436,12 @@ var colorTransitionEditor = {
     startDrag : function(evt) {
         if (evt.target.classList.contains('draggable')) {
             colorTransitionEditor.selectedElement = evt.target;
-
-            for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
-                if(colorTransitionEditor.transitions[i].svg.obj == colorTransitionEditor.selectedElement) {
-                    // make tompost
-                }
-            }
             
+            colorTransitionEditor.selectedElement.remove();
+            colorTransitionEditor.svg.appendChild(colorTransitionEditor.selectedElement);
+
+            colorTransitionEditor.selectedElement.setAttribute('style', 'filter:url(#dropshadow)');
+
             colorTransitionEditor.offset = colorTransitionEditor.getMousePosition(evt);
             // Make sure the first transform on the element is a translate transform
             var transforms = colorTransitionEditor.selectedElement.transform.baseVal;
@@ -437,6 +457,12 @@ var colorTransitionEditor = {
             colorTransitionEditor.offset.x -= colorTransitionEditor.transform.matrix.e;
             colorTransitionEditor.offset.y -= colorTransitionEditor.transform.matrix.f;
 
+        } else if ((evt.target == colorTransitionEditor.svg_add_button || evt.target.parentNode == colorTransitionEditor.svg_add_button) 
+        && (evt.type == 'touchstart')
+        && (colorTransitionEditor.transitions.length < colorTransitionEditor.max_transitions)) {
+            // add new default transition
+            colorTransitionEditor.appdendTransition({start: {r: 200, g: 200, b: 200}, stop: {r: 155, g: 155, b: 155}, time: 10000, name: ''});
+            colorTransitionEditor.refresh();
         }
     },
 
@@ -449,27 +475,42 @@ var colorTransitionEditor = {
     },
 
     endDrag : function(evt) {
-        // if moved far to left remove from array
-        var i = 0
-        if(colorTransitionEditor.transform) {
-            if(colorTransitionEditor.transform.matrix.e > colorTransitionEditor.tbar_width + colorTransitionEditor.tbar_width / 2) {
+        if (colorTransitionEditor.selectedElement) {
+            colorTransitionEditor.selectedElement.setAttribute('style', '');
+            var i = 0
+            if(colorTransitionEditor.transform) {
+                // find related transition element
+                var transition_index = null;
                 for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
                     if(colorTransitionEditor.transitions[i].svg.obj == colorTransitionEditor.selectedElement) {
-                        colorTransitionEditor.transitions[i].svg.obj.remove();
-                        colorTransitionEditor.transitions[i].svg.g.remove();
-                        colorTransitionEditor.transitions.splice(i, 1);
+                        transition_index = i;
                         break;
                     }
-                } 
+                }
+
+                // if moved far to left remove from array
+                if(transition_index !== null && colorTransitionEditor.transform.matrix.e > colorTransitionEditor.tbar_width) {
+                    colorTransitionEditor.selectedElement.remove();
+                    colorTransitionEditor.transitions.splice(transition_index, 1);
+                    
+                // if moved up or down further then next or previous swap'em
+                } else if(transition_index !== null) { // move down
+                    if(colorTransitionEditor.transform.matrix.f >= colorTransitionEditor.transitions[transition_index].position.height / 2 && transition_index < colorTransitionEditor.transitions.length - 1) {
+                        var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
+                        colorTransitionEditor.transitions.splice(transition_index + 1, 0, rmoved[0]);
+                    // move up
+                    } else if(colorTransitionEditor.transform.matrix.f * -1 >= colorTransitionEditor.transitions[transition_index].position.height / 2  && transition_index > 0) {
+                        var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
+                        colorTransitionEditor.transitions.splice(transition_index - 1, 0, rmoved[0]);
+                    }
+                }
+
+                // finally start animating back
+                colorTransitionEditor.recalcPositions();
+                colorTransitionEditor.refresh();
+                colorTransitionEditor.transform.setTranslate(0, 0);
+                colorTransitionEditor.selectedElement = false;
             }
-
-            // if moved up or dowb further tgen next or previous swap
-
-            // finally start animating back
-            colorTransitionEditor.recalcPositions();
-            colorTransitionEditor.refresh();
-            colorTransitionEditor.transform.setTranslate(0, 0);
-            colorTransitionEditor.selectedElement = false;
         }
     },
 
@@ -519,8 +560,13 @@ var colorTransitionEditor = {
             current_start_y: 0,
             current_end_y: 0,
             int_name: 'svg_tredt_gradient_' + trans.name.replace(/\s+/g, ''),
-            name: trans.name
+            //name: trans.name // ignore name and generate one
+            int_name: String(this.date_obj.getMilliseconds()) + ' ' + String(this.elements_couner),
         };
+        this.elements_couner++;
+        
+        // chacek wether to disable add button
+
         this.transitions.push(int_trans);
         this.recalcPositions();     // recalculate positions and dimensions
         this.makeSvgTrnasition(int_trans);
@@ -560,6 +606,14 @@ var colorTransitionEditor = {
             //y_offset += this.transitions[i].position.height + 2 * this.tsep_heigth;
             y_offset += this.transitions[i].position.height;
         }
+
+        if(this.transitions.length < this.max_transitions) {
+            // enable append  button
+            this.svg_add_button.setAttributeNS(null, 'fill', '#107baf');
+        } else {
+            this.svg_add_button.setAttributeNS(null, 'fill', '#cce7e8');
+        }
+
     },
 
     /**
@@ -595,30 +649,33 @@ var colorTransitionEditor = {
             int_trans.svg.obj.setAttributeNS(null, 'height',  int_trans.position.height);    // will be recalculated later
             int_trans.svg.obj.setAttributeNS(null, 'x', int_trans.position.x);
             int_trans.svg.obj.setAttributeNS(null, 'y', int_trans.position.y);
-            int_trans.svg.obj.setAttributeNS(null, 'rx', '3');
+            int_trans.svg.obj.setAttributeNS(null, 'rx', '5');
             int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
             int_trans.svg.obj.setAttributeNS(null, 'class', "draggable");
             this.svg.appendChild(int_trans.svg.obj);
         }
 
         // terminator 1
-        /*if(int_trans.svg.start_bar == null) {
-            var p1_x = int_trans.position.x - this.tsep_width_mod;
-            var p1_y = int_trans.position.y;
-            var p2_x = int_trans.position.x + int_trans.position.width / 2.0;
-            var p2_y = int_trans.position.y - this.tsep_heigth;
-            var p3_x = int_trans.position.x + int_trans.position.width + this.tsep_width_mod;
-            var p3_y = int_trans.position.y;
+        if(int_trans.svg.start_bar == null) {
+            // <path d="M 10 80 Q 52.5 10, 95 80 T 180 80" stroke="black" fill="transparent"/>
+
+            var p1_x = int_trans.position.x + int_trans.position.width;
+            var p1_y = int_trans.position.y + int_trans.position.height / 2;
             
-            int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            int_trans.svg.start_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
-            int_trans.svg.start_bar.setAttributeNS(null, 'fill', 'rgb('+ int_trans.start.r +', '+int_trans.start.g +', '+ int_trans.start.b +')');
-            //int_trans.svg.start_bar.setAttributeNS(null, 'fill-opacity', '0.3');
-            int_trans.svg.start_bar.setAttributeNS(null, 'stroke', 'white');
+            var p2_x = int_trans.position.x + int_trans.position.width + 10;
+            var p2_y = int_trans.position.y + int_trans.position.width + 10;
+            
+            var p3_x = int_trans.position.x + int_trans.position.width + 20;
+            var p3_y = int_trans.position.y + int_trans.position.width + 15;
+            
+            int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            int_trans.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
+            int_trans.svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
+            int_trans.svg.start_bar.setAttributeNS(null, 'stroke', 'black');
             this.svg.appendChild(int_trans.svg.start_bar);
         }
 
-        if(int_trans.svg.stop_bar == null) {
+        /*if(int_trans.svg.stop_bar == null) {
             var p1_x = int_trans.position.x - this.tsep_width_mod;
             var p1_y = int_trans.position.y + int_trans.position.height;
             var p2_x = int_trans.position.x + int_trans.position.width / 2.0;
@@ -651,22 +708,25 @@ var colorTransitionEditor = {
                 this.transitions[i].svg.obj.setAttributeNS(null, 'x', this.transitions[i].position.x);
                 this.transitions[i].svg.obj.setAttributeNS(null, 'y', this.transitions[i].position.y);
             }
+
+            if(this.transitions[i].svg.start_bar != null) {
     
-            // terminator 1
-            /*if(this.transitions[i].svg.start_bar != null) {
-    
-                var p1_x = this.transitions[i].position.x - this.tsep_width_mod;
-                var p1_y = this.transitions[i].position.y;
-                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width / 2.0;
-                var p2_y = this.transitions[i].position.y - this.tsep_heigth;
-                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + this.tsep_width_mod;
-                var p3_y = this.transitions[i].position.y;
+                var p1_x = this.transitions[i].position.x + this.transitions[i].position.width;
+                var p1_y = this.transitions[i].position.y + this.transitions[i].position.height / 2;
                 
-                this.transitions[i].svg.start_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
-                this.transitions[i].svg.start_bar.setAttributeNS(null, 'fill', 'rgb('+ this.transitions[i].start.r +', '+this.transitions[i].start.g +', '+ this.transitions[i].start.b +')');
+                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width + 10;
+                var p2_y = this.transitions[i].position.y + this.transitions[i].position.width + 10;
+                
+                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + 20;
+                var p3_y = this.transitions[i].position.y + this.transitions[i].position.width + 15;
+                
+                this.transitions[i].svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
+                this.transitions[i].svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
+                this.transitions[i].svg.start_bar.setAttributeNS(null, 'stroke', 'black');
+
             }
     
-            if(this.transitions[i].svg.stop_bar != null) {
+            /*if(this.transitions[i].svg.stop_bar != null) {
                 var p1_x = this.transitions[i].position.x - this.tsep_width_mod;
                 var p1_y = this.transitions[i].position.y + this.transitions[i].position.height;
                 var p2_x = this.transitions[i].position.x + this.transitions[i].position.width / 2.0;
