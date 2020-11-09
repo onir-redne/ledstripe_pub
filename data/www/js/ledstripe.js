@@ -613,7 +613,6 @@ var colorTransitionEditor = {
         } else {
             this.svg_add_button.setAttributeNS(null, 'fill', '#cce7e8');
         }
-
     },
 
     /**
@@ -628,14 +627,12 @@ var colorTransitionEditor = {
             int_trans.svg.gradient.setAttributeNS(null, 'gradientTransform', 'rotate(90)');
             int_trans.svg.gradient_stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             int_trans.svg.gradient_stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            int_trans.svg.gradient_stop1.setAttributeNS(null, 'offset', '0%');
-            int_trans.svg.gradient_stop1.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.start.r +', '+ int_trans.start.g +', '+ int_trans.start.b +')');
-            int_trans.svg.gradient_stop2.setAttributeNS(null, 'offset', '100%');
-            int_trans.svg.gradient_stop2.setAttributeNS(null, 'stop-color', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
             
             // append ranges to gradient
             int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop1);
             int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop2);
+
+            this.refreshGradient(int_trans);
             
             // add gradient to defs
             this.svg_defs.appendChild(int_trans.svg.gradient);
@@ -652,99 +649,60 @@ var colorTransitionEditor = {
             int_trans.svg.obj.setAttributeNS(null, 'rx', '5');
             int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
             int_trans.svg.obj.setAttributeNS(null, 'class', "draggable");
+
+            this.refreshStripe(int_trans);
+
             this.svg.appendChild(int_trans.svg.obj);
         }
 
         // terminator 1
         if(int_trans.svg.start_bar == null) {
-            // <path d="M 10 80 Q 52.5 10, 95 80 T 180 80" stroke="black" fill="transparent"/>
-
-            var p1_x = int_trans.position.x + int_trans.position.width;
-            var p1_y = int_trans.position.y + int_trans.position.height / 2;
-            
-            var p2_x = int_trans.position.x + int_trans.position.width + 10;
-            var p2_y = int_trans.position.y + int_trans.position.width + 10;
-            
-            var p3_x = int_trans.position.x + int_trans.position.width + 20;
-            var p3_y = int_trans.position.y + int_trans.position.width + 15;
-            
             int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            int_trans.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
-            int_trans.svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
-            int_trans.svg.start_bar.setAttributeNS(null, 'stroke', 'black');
+
+            this.refreshStop(int_trans);
+
             this.svg.appendChild(int_trans.svg.start_bar);
         }
-
-        /*if(int_trans.svg.stop_bar == null) {
-            var p1_x = int_trans.position.x - this.tsep_width_mod;
-            var p1_y = int_trans.position.y + int_trans.position.height;
-            var p2_x = int_trans.position.x + int_trans.position.width / 2.0;
-            var p2_y = int_trans.position.y + this.tsep_heigth + int_trans.position.height;
-            var p3_x = int_trans.position.x + int_trans.position.width + this.tsep_width_mod;
-            var p3_y = int_trans.position.y + int_trans.position.height;
-            
-            int_trans.svg.stop_bar = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            int_trans.svg.stop_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
-            int_trans.svg.stop_bar.setAttributeNS(null, 'fill', 'rgb('+ int_trans.stop.r +', '+ int_trans.stop.g +', '+ int_trans.stop.b +')');
-            //int_trans.svg.stop_bar.setAttributeNS(null, 'fill-opacity', '0.3');
-            int_trans.svg.stop_bar.setAttributeNS(null, 'stroke', 'white');
-            this.svg.appendChild(int_trans.svg.stop_bar);
-        }*/
     },
 
     refresh : function() {
         for (var i = 0; i < this.transitions.length; i++) {
-            if(this.transitions[i].svg.gradient != null) {
-                this.transitions[i].svg.gradient_stop1.setAttributeNS(null, 'offset', '0%');
-                this.transitions[i].svg.gradient_stop1.setAttributeNS(null, 'stop-color', 'rgb('+ this.transitions[i].start.r +', '+ this.transitions[i].start.g +', '+ this.transitions[i].start.b +')');
-                this.transitions[i].svg.gradient_stop2.setAttributeNS(null, 'offset', '100%');
-                this.transitions[i].svg.gradient_stop2.setAttributeNS(null, 'stop-color', 'rgb('+ this.transitions[i].stop.r +', '+ this.transitions[i].stop.g +', '+ this.transitions[i].stop.b +')');
-            } 
-    
-            // main gradient stripe
-            if(this.transitions[i].svg.obj != null) {
-                this.transitions[i].svg.obj.setAttributeNS(null, 'width', this.transitions[i].position.width);
-                this.transitions[i].svg.obj.setAttributeNS(null, 'height',  this.transitions[i].position.height);    // will be recalculated later
-                this.transitions[i].svg.obj.setAttributeNS(null, 'x', this.transitions[i].position.x);
-                this.transitions[i].svg.obj.setAttributeNS(null, 'y', this.transitions[i].position.y);
-            }
-
-            if(this.transitions[i].svg.start_bar != null) {
-    
-                var p1_x = this.transitions[i].position.x + this.transitions[i].position.width;
-                var p1_y = this.transitions[i].position.y + this.transitions[i].position.height / 2;
-                
-                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width + 10;
-                var p2_y = this.transitions[i].position.y + this.transitions[i].position.width + 10;
-                
-                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + 20;
-                var p3_y = this.transitions[i].position.y + this.transitions[i].position.width + 15;
-                
-                this.transitions[i].svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
-                this.transitions[i].svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
-                this.transitions[i].svg.start_bar.setAttributeNS(null, 'stroke', 'black');
-
-            }
-    
-            /*if(this.transitions[i].svg.stop_bar != null) {
-                var p1_x = this.transitions[i].position.x - this.tsep_width_mod;
-                var p1_y = this.transitions[i].position.y + this.transitions[i].position.height;
-                var p2_x = this.transitions[i].position.x + this.transitions[i].position.width / 2.0;
-                var p2_y = this.transitions[i].position.y + this.tsep_heigth + this.transitions[i].position.height;
-                var p3_x = this.transitions[i].position.x + this.transitions[i].position.width + this.tsep_width_mod;
-                var p3_y = this.transitions[i].position.y + this.transitions[i].position.height;
-                
-                this.transitions[i].svg.stop_bar.setAttributeNS(null, 'points', p1_x + ' ' + p1_y + ' ' + p2_x + ' ' + p2_y + ' ' + p3_x + ' ' + p3_y);
-                this.transitions[i].svg.stop_bar.setAttributeNS(null, 'fill', 'rgb('+ this.transitions[i].stop.r +', '+ this.transitions[i].stop.g +', '+ this.transitions[i].stop.b +')');
-            }*/
+            this.refreshGradient(this.transitions[i]);
+            this.refreshStop(this.transitions[i]);
+            this.refreshStripe(this.transitions[i]);
         }
+    },
 
-        // draw other elements:
+    refreshStop : function(obj) {
+        var p1_x = obj.position.x + obj.position.width + 2;
+        var p1_y = obj.position.y + obj.position.height / 2;
+        var p2_x = obj.position.x + obj.position.width + 8;
+        var p2_y = obj.position.y + obj.position.height / 2;
+        //var p3_x = obj.position.x + obj.position.width + 20;
+        //var p3_y = obj.position.y + obj.position.width + 15;
+        
+        //obj.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
+        obj.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' L ' + p2_x + ' ' + p2_y );
+        obj.svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
+        obj.svg.start_bar.setAttributeNS(null, 'stroke', 'black');
+    },
 
-        // ruller
+    refreshGradient : function(obj) {
+        if(obj.svg.gradient != null) {
+            obj.svg.gradient_stop1.setAttributeNS(null, 'offset', '0%');
+            obj.svg.gradient_stop1.setAttributeNS(null, 'stop-color', 'rgb('+ obj.start.r +', '+ obj.start.g +', '+ obj.start.b +')');
+            obj.svg.gradient_stop2.setAttributeNS(null, 'offset', '100%');
+            obj.svg.gradient_stop2.setAttributeNS(null, 'stop-color', 'rgb('+ obj.stop.r +', '+ obj.stop.g +', '+ obj.stop.b +')');
+        }
+    },
 
-
-
+    refreshStripe : function(obj) {
+        if(obj.svg.obj != null) {
+            obj.svg.obj.setAttributeNS(null, 'width', obj.position.width);
+            obj.svg.obj.setAttributeNS(null, 'height',  obj.position.height);    // will be recalculated later
+            obj.svg.obj.setAttributeNS(null, 'x', obj.position.x);
+            obj.svg.obj.setAttributeNS(null, 'y', obj.position.y);
+        }
     },
 }
 
