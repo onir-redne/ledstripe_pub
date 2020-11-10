@@ -63,7 +63,7 @@
 	<div role="main" class="ui-content">
         <div class="ui-field-contain"  id="saved_colors_list" >
             <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
-                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'edit color' ,'test edit',{ r: 120, g:90, b:200}, 1);"></a>
+                <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'edit color' ,'test edit',{ r: 120, g:90, b:200});"></a>
                 <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(0); });"></a></div>
 
                     <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all  saved-color-text input-quad-transp">A</a></div>
@@ -88,7 +88,7 @@
                 <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">C</a></div>
                 <div class="saved-color-text center-wrapper">demo color</div>
             </div>
-            <button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowTransEditDialog(event.target, function() {  }, true, 'Add Transition' ,'', null);">Add transition</button>
+            <button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowTransEditDialog(event.target, function() {  }, true, null ,'', null);">Add transition</button>
         </div>
 	</div>
 </div>
@@ -118,7 +118,10 @@
     <div role="main" class="ui-content center-wrapper" >
         <h4 id="color_peeker_dialog_text"></h4>
         <canvas id="color_dialog_canvas"></canvas>
-        <div class="ui-btn ui-corner-all input-quead-mini" id="color_picker_color"></div>
+        <div>
+            <div onclick="dialog_color_picker.editInput(event.target)" class="ui-btn ui-corner-all input-quead-mini" id="color_picker_color"></div>
+            <div onclick="dialog_color_picker.editInput(event.target)" class="ui-btn ui-corner-all input-quead-mini" id="color_picker_color_second" style="display: none;"></div>
+        </div>
         <input type="text" style="text-align:center;" name="text-basic" id="color_peeker_dialog_name" value="" maxlength="16" hidden>
 
         <div data-role="controlgroup" data-type="horizontal">

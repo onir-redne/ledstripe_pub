@@ -15,7 +15,7 @@
  * you want to me to add credits or licensing information please contact me.
  * RGBtoHSV() found on: http://javascripter.net/faq/rgb2hsv.htm
  * HSVtoRGB() found on: https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
- * SVG draggable found on: https://github.com/petercollingridge/code-for-blog/tree/master/svg-interaction
+ * SVG draggable examples found on: https://github.com/petercollingridge/code-for-blog/tree/master/svg-interaction
  */ 
 
 var updateTimer = null;
@@ -52,24 +52,6 @@ window.onload = function() {
             }
         }
     });
-
-    dialog_color_picker = new KellyColorPicker({ 
-        place : 'color_dialog_canvas',
-        method: 'quad',
-        methodSwitch: true,
-        userEvents : { 
-        
-            change : function(self) {
-                // on color chnge
-                var rgbCurrent = self.getCurColorRgb();
-                var hsvCurrent = self.getCurColorHsv();
-                var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);      
-                document.getElementById('color_picker_color').style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";
-                stripeState.setColorPeek(rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
-            }
-        }
-    });
-
     // setup main color picker
     main_color_picker.getWheel().width = 40;
     main_color_picker.getSvFigCursor().radius = 35;
@@ -95,7 +77,42 @@ window.onload = function() {
         main_color_picker.setColor(main_color_picker.selectedInput.value);
     }
 
+    dialog_color_picker = new KellyColorPicker({ 
+        place : 'color_dialog_canvas',
+        method: 'quad',
+        methodSwitch: true,
+        userEvents : { 
+        
+            change : function(self) {
+                // on color chnge
+                var rgbCurrent = self.getCurColorRgb();
+                var hsvCurrent = self.getCurColorHsv();
+                var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);
+                if (!self.selectedInput) self.selectedInput = document.getElementById('color_picker_color');
+                self.selectedInput.style.background = "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))";
+                self.selectedInput.value = self.getCurColorHex();
+                stripeState.setColorPeek(rgbCurrent.r, rgbCurrent.g, rgbCurrent.b);
+            }
+        }
+    });
+
+     // addition user methods \ variables 
+     dialog_color_picker.editInput = function(target) {
     
+        if (dialog_color_picker.selectedInput) {
+            dialog_color_picker.selectedInput.classList.remove('selected');
+        }
+
+        if (target) 
+        dialog_color_picker.selectedInput = target;
+        if (!dialog_color_picker.selectedInput) 
+            return false;
+        
+        dialog_color_picker.selectedInput.classList.add('selected');
+        dialog_color_picker.setColor(dialog_color_picker.selectedInput.value);
+    }
+
+
     // initialize 
     var mInputs = document.getElementsByClassName('multi-input');
     for (var i = 0; i < mInputs.length; i++) {
@@ -145,6 +162,9 @@ var navigationHelpers = {
         this.trans_edit_dialog_OK = $('#color_peeker_dialog_OK');
         
         this.loading_overlay = $('#loading_overlay');
+
+        this.selected_color1 = $('#color_picker_color');
+        this.selected_color2 = $('#color_picker_color_second');
     },
 
     ShowLoadingOverlay : function() {
@@ -180,12 +200,14 @@ var navigationHelpers = {
         this.confirmation_dialog_OK.on('click', ok_handler);  
     },
 
-    ShowColorPickerDialog : function(src, ok_handler, set_name, message, color_name, color) {
+    ShowColorPickerDialog : function(src, ok_handler, set_name, message, color_name, color1, color2) {
         this.color_peeker_dialog_OK.unbind('click');
         if(message) {
             this.color_peeker_dialog_text.text(message);
+            this.color_peeker_dialog_text.show();
         } else {
             this.color_peeker_dialog_text.text("");
+            this.color_peeker_dialog_text.hide();
         }
         if(set_name) {
             this.color_peeker_dialog_name.show();
@@ -193,6 +215,19 @@ var navigationHelpers = {
         } else {
             this.color_peeker_dialog_name.hide();
         }
+        if(color2) { 
+            this.selected_color2.val(rgbToHex(color2));
+            var rgbCurrent = color2;
+            var hsvCurrent = rgbToHsv(color2);
+            var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);
+            this.selected_color2.css("background", "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))"); 
+            this.selected_color2.css("display","")
+
+        } else {
+            this.selected_color2.css("display","none")
+        }
+        // set selected input to 1
+        dialog_color_picker.selectedInput = document.getElementById('color_picker_color');
         //dialog_color_picker.rgb = {r: color.r, g: color.g, b: color.b};
         //resize picker to dialog
         var dialog_width = this.color_peeker_dialog.width();
@@ -204,7 +239,7 @@ var navigationHelpers = {
         dialog_color_picker.getWheelCursor().lineWeight = 2;
         dialog_color_picker.resize(dialog_width - dialog_width / 3);
         // update to applay size options
-        dialog_color_picker.setColorByHex('#ffffff');
+        dialog_color_picker.setColorByHex(rgbToHex(color1));
         dialog_color_picker.updateView(true);
 
         // bind handler
@@ -212,12 +247,22 @@ var navigationHelpers = {
         $.mobile.changePage('#color_peeker_dialog');
     },
 
+    getPeekColor1Hex : function() {
+        return this.selected_color1.val();
+    },
+
+    getPeekColor2Hex : function() {
+        return this.selected_color2.val();
+    },
+
     ShowTransEditDialog : function(src, ok_handler, set_name, message, set_values_array) {
         this.trans_edit_dialog_OK.unbind('click');
         if(message) {
             this.trans_edit_dialog_text.text(message);
+            this.trans_edit_dialog_text.show();
         } else {
             this.trans_edit_dialog_text.text("");
+            this.trans_edit_dialog_text.hide();
         }
         if(set_name) {
             this.trans_edit_dialog_name.show();
@@ -286,7 +331,7 @@ var savedColors = {
                 new_html += `
                 <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(`+ c.r +`,`+ c.g +`,`+ c.b +`,1) 40%, rgba(` + vc.r + `,` + vc.g + `,` + vc.b + `,1) 100%);">
                     <div class="ui-block-a">
-                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, 1);"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, null);"></a>
                         <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(` + cid + `); });"></a>
                     </div>
                     <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(0, `+ c.r +`,`+ c.g +`,`+ c.b +`);">A</a></div>
@@ -386,10 +431,12 @@ var colorTransitionEditor = {
     time_scale: 1.0,
     ruller_width: 5,
     ruller_resolution: 1.0,
-    selectedElement: false,
-    offset: null, 
-    transform: null,
+    drag_selectedElement: false,
+    drag_offset: null, 
+    drag_transform: null,
+    drag_time_diff: 0,
     date_obj: null,
+
     elements_couner: 0,
     
     init: function(obj_id, x, y, width, heigth, max_time, max_trans) {
@@ -413,9 +460,9 @@ var colorTransitionEditor = {
         this.svg_add_button = document.getElementById('svg_append_button');
 
 
-        this.svg.addEventListener('mousedown', this.startDrag);
+        //this.svg.addEventListener('mousedown', this.startDrag);
         this.svg.addEventListener('mousemove', this.drag);
-        this.svg.addEventListener('mouseup', this.endDrag);
+        //this.svg.addEventListener('mouseup', this.endDrag);
         this.svg.addEventListener('mouseleave', this.endDrag);
         this.svg.addEventListener('touchstart', this.startDrag);
         this.svg.addEventListener('touchmove', this.drag);
@@ -435,27 +482,32 @@ var colorTransitionEditor = {
     
     startDrag : function(evt) {
         if (evt.target.classList.contains('draggable')) {
-            colorTransitionEditor.selectedElement = evt.target;
+            colorTransitionEditor.drag_selectedElement = evt.target;
             
-            colorTransitionEditor.selectedElement.remove();
-            colorTransitionEditor.svg.appendChild(colorTransitionEditor.selectedElement);
+            colorTransitionEditor.drag_selectedElement.remove();
+            colorTransitionEditor.svg.appendChild(colorTransitionEditor.drag_selectedElement);
 
-            colorTransitionEditor.selectedElement.setAttribute('style', 'filter:url(#dropshadow)');
+            colorTransitionEditor.drag_selectedElement.setAttribute('style', 'filter:url(#dropshadow)');
 
-            colorTransitionEditor.offset = colorTransitionEditor.getMousePosition(evt);
+            colorTransitionEditor.drag_offset = colorTransitionEditor.getMousePosition(evt);
             // Make sure the first transform on the element is a translate transform
-            var transforms = colorTransitionEditor.selectedElement.transform.baseVal;
+            var transforms = colorTransitionEditor.drag_selectedElement.transform.baseVal;
 
             if (transforms.length === 0 || transforms.getItem(0).type !== SVGTransform.SVG_TRANSFORM_TRANSLATE) {
                 // Create an transform that translates by (0, 0)
                 var translate = colorTransitionEditor.svg.createSVGTransform();
                 translate.setTranslate(0, 0);
-                colorTransitionEditor.selectedElement.transform.baseVal.insertItemBefore(translate, 0);
+                colorTransitionEditor.drag_selectedElement.transform.baseVal.insertItemBefore(translate, 0);
             }
             // Get initial translation
-            colorTransitionEditor.transform = transforms.getItem(0);
-            colorTransitionEditor.offset.x -= colorTransitionEditor.transform.matrix.e;
-            colorTransitionEditor.offset.y -= colorTransitionEditor.transform.matrix.f;
+            colorTransitionEditor.drag_transform = transforms.getItem(0);
+            colorTransitionEditor.drag_offset.x -= colorTransitionEditor.drag_transform.matrix.e;
+            colorTransitionEditor.drag_offset.y -= colorTransitionEditor.drag_transform.matrix.f;
+
+            // detect (clicks)
+            if(evt.type == 'touchstart') {
+                colorTransitionEditor.drag_time_diff = new Date().getTime();
+            }
 
         } else if ((evt.target == colorTransitionEditor.svg_add_button || evt.target.parentNode == colorTransitionEditor.svg_add_button) 
         && (evt.type == 'touchstart')
@@ -467,56 +519,69 @@ var colorTransitionEditor = {
     },
 
     drag : function(evt) {
-        if (colorTransitionEditor.selectedElement) {
+        if (colorTransitionEditor.drag_selectedElement) {
           evt.preventDefault();
           var coord = colorTransitionEditor.getMousePosition(evt);
-          colorTransitionEditor.transform.setTranslate(coord.x - colorTransitionEditor.offset.x, coord.y - colorTransitionEditor.offset.y);
+          colorTransitionEditor.drag_transform.setTranslate(coord.x - colorTransitionEditor.drag_offset.x, coord.y - colorTransitionEditor.drag_offset.y);
         }
     },
 
     endDrag : function(evt) {
-        if (colorTransitionEditor.selectedElement) {
-            colorTransitionEditor.selectedElement.setAttribute('style', '');
+        if (colorTransitionEditor.drag_selectedElement) {
+            colorTransitionEditor.drag_selectedElement.setAttribute('style', '');
             var i = 0
-            if(colorTransitionEditor.transform) {
+            if(colorTransitionEditor.drag_transform) {
                 // find related transition element
                 var transition_index = null;
                 for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
-                    if(colorTransitionEditor.transitions[i].svg.obj == colorTransitionEditor.selectedElement) {
+                    if(colorTransitionEditor.transitions[i].svg.obj.id === colorTransitionEditor.drag_selectedElement.id) {
                         transition_index = i;
                         break;
                     }
                 }
 
-                // if moved far to left remove from array
-                if(transition_index !== null && colorTransitionEditor.transform.matrix.e > colorTransitionEditor.tbar_width) {
-                    colorTransitionEditor.selectedElement.remove();
+                // if moved far to left or right remove from array
+                if(transition_index !== null && (colorTransitionEditor.drag_transform.matrix.e > colorTransitionEditor.tbar_width || colorTransitionEditor.drag_transform.matrix.e * -1 > colorTransitionEditor.tbar_width)) {
+                    colorTransitionEditor.drag_selectedElement.remove();
                     colorTransitionEditor.transitions.splice(transition_index, 1);
                     
                 // if moved up or down further then next or previous swap'em
                 } else if(transition_index !== null) { // move down
-                    if(colorTransitionEditor.transform.matrix.f >= colorTransitionEditor.transitions[transition_index].position.height / 2 && transition_index < colorTransitionEditor.transitions.length - 1) {
+                    if(colorTransitionEditor.drag_transform.matrix.f >= colorTransitionEditor.transitions[transition_index].position.height / 2 && transition_index < colorTransitionEditor.transitions.length - 1) {
                         var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
                         colorTransitionEditor.transitions.splice(transition_index + 1, 0, rmoved[0]);
                     // move up
-                    } else if(colorTransitionEditor.transform.matrix.f * -1 >= colorTransitionEditor.transitions[transition_index].position.height / 2  && transition_index > 0) {
+                    } else if(colorTransitionEditor.drag_transform.matrix.f * -1 >= colorTransitionEditor.transitions[transition_index].position.height / 2  && transition_index > 0) {
                         var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
                         colorTransitionEditor.transitions.splice(transition_index - 1, 0, rmoved[0]);
+                    }else {
+                        // if time was short and no significant move - show edit window
+                        if(new Date().getTime() - colorTransitionEditor.drag_time_diff < 500) {
+                            navigationHelpers.ShowColorPickerDialog(null, function () { 
+                                colorTransitionEditor.updateTrnasitionColors(transition_index, hexToRgb(navigationHelpers.getPeekColor1Hex()), hexToRgb(navigationHelpers.getPeekColor2Hex()));
+                            }, false, 'Transition', '', colorTransitionEditor.transitions[transition_index].start, colorTransitionEditor.transitions[transition_index].stop);
+                        }
                     }
-                }
+                } 
 
                 // finally start animating back
                 colorTransitionEditor.recalcPositions();
                 colorTransitionEditor.refresh();
-                colorTransitionEditor.transform.setTranslate(0, 0);
-                colorTransitionEditor.selectedElement = false;
+                colorTransitionEditor.drag_transform.setTranslate(0, 0);
+                colorTransitionEditor.drag_selectedElement = false;
             }
         }
     },
 
+    updateTrnasitionColors : function(index, start, stop) {
+        this.transitions[index].start = start;
+        this.transitions[index].stop = stop;
+        // update grdient
+        this.refreshGradient(this.transitions[index]);
+    },
+
     /**
      * Setup new transition edit
-     * @param {Array} trans_array input transitions array: {start: {r: Number, g: Number, b: Number}, stop: {r: Number, g: Number, b: Number}, time: Number, name: String}
      */
     setupTransitions : function(trans_array) {
         // remove all transitions
@@ -559,9 +624,8 @@ var colorTransitionEditor = {
             },
             current_start_y: 0,
             current_end_y: 0,
-            int_name: 'svg_tredt_gradient_' + trans.name.replace(/\s+/g, ''),
             //name: trans.name // ignore name and generate one
-            int_name: String(this.date_obj.getMilliseconds()) + ' ' + String(this.elements_couner),
+            int_name: String(this.date_obj.getMilliseconds()) + '-' + String(this.elements_couner),
         };
         this.elements_couner++;
         
@@ -623,7 +687,7 @@ var colorTransitionEditor = {
         // svg gradient
         if(int_trans.svg.gradient == null) {
             int_trans.svg.gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            int_trans.svg.gradient.setAttributeNS(null, 'id', 'svg_gradient_' + int_trans.int_name);
+            int_trans.svg.gradient.setAttributeNS(null, 'id', 'svg_gradient-' + int_trans.int_name);
             int_trans.svg.gradient.setAttributeNS(null, 'gradientTransform', 'rotate(90)');
             int_trans.svg.gradient_stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             int_trans.svg.gradient_stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
@@ -647,8 +711,9 @@ var colorTransitionEditor = {
             int_trans.svg.obj.setAttributeNS(null, 'x', int_trans.position.x);
             int_trans.svg.obj.setAttributeNS(null, 'y', int_trans.position.y);
             int_trans.svg.obj.setAttributeNS(null, 'rx', '5');
-            int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient_" + int_trans.int_name + "')");
+            int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient-" + int_trans.int_name + "')");
             int_trans.svg.obj.setAttributeNS(null, 'class', "draggable");
+            int_trans.svg.obj.setAttributeNS(null, 'id', 'svg_stripe-' + int_trans.int_name);
 
             this.refreshStripe(int_trans);
 
