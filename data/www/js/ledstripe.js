@@ -512,8 +512,13 @@ var colorTransitionEditor = {
         } else if ((evt.target == colorTransitionEditor.svg_add_button || evt.target.parentNode == colorTransitionEditor.svg_add_button) 
         && (evt.type == 'touchstart')
         && (colorTransitionEditor.transitions.length < colorTransitionEditor.max_transitions)) {
-            // add new default transition
-            colorTransitionEditor.appdendTransition({start: {r: 200, g: 200, b: 200}, stop: {r: 155, g: 155, b: 155}, time: 10000, name: ''});
+            // add new transition with start color set to preceeding end color
+            var start = {r: 200, g: 200, b: 200};
+            if(colorTransitionEditor.transitions.length > 0) {
+                start = colorTransitionEditor.transitions[colorTransitionEditor.transitions.length - 1].stop;
+            }
+            var tr = colorTransitionEditor.getTransitionForSvgObj(colorTransitionEditor.drag_selectedElement);
+            colorTransitionEditor.appdendTransition({start, stop: {r: 155, g: 155, b: 155}, time: 10000, name: ''});
             colorTransitionEditor.refresh();
         }
     },
@@ -532,34 +537,29 @@ var colorTransitionEditor = {
             var i = 0
             if(colorTransitionEditor.drag_transform) {
                 // find related transition element
-                var transition_index = null;
-                for(i = 0; i < colorTransitionEditor.transitions.length; i++) {
-                    if(colorTransitionEditor.transitions[i].svg.obj.id === colorTransitionEditor.drag_selectedElement.id) {
-                        transition_index = i;
-                        break;
-                    }
-                }
+                var tr = colorTransitionEditor.getTransitionForSvgObj(colorTransitionEditor.drag_selectedElement);
 
                 // if moved far to left or right remove from array
-                if(transition_index !== null && (colorTransitionEditor.drag_transform.matrix.e > colorTransitionEditor.tbar_width || colorTransitionEditor.drag_transform.matrix.e * -1 > colorTransitionEditor.tbar_width)) {
+                if(tr.index !== null && (colorTransitionEditor.drag_transform.matrix.e > colorTransitionEditor.tbar_width || colorTransitionEditor.drag_transform.matrix.e * -1 > colorTransitionEditor.tbar_width)) {
+                    colorTransitionEditor.removeSvgObjects(tr.index);
                     colorTransitionEditor.drag_selectedElement.remove();
-                    colorTransitionEditor.transitions.splice(transition_index, 1);
+                    colorTransitionEditor.transitions.splice(tr.index, 1);
                     
                 // if moved up or down further then next or previous swap'em
-                } else if(transition_index !== null) { // move down
-                    if(colorTransitionEditor.drag_transform.matrix.f >= colorTransitionEditor.transitions[transition_index].position.height / 2 && transition_index < colorTransitionEditor.transitions.length - 1) {
-                        var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
-                        colorTransitionEditor.transitions.splice(transition_index + 1, 0, rmoved[0]);
+                } else if(tr.index !== null) { // move down
+                    if(colorTransitionEditor.drag_transform.matrix.f >= tr.obj.position.height / 2 && tr.index < colorTransitionEditor.transitions.length - 1) {
+                        var rmoved = colorTransitionEditor.transitions.splice(tr.index, 1);
+                        colorTransitionEditor.transitions.splice(tr.index + 1, 0, rmoved[0]);
                     // move up
-                    } else if(colorTransitionEditor.drag_transform.matrix.f * -1 >= colorTransitionEditor.transitions[transition_index].position.height / 2  && transition_index > 0) {
-                        var rmoved = colorTransitionEditor.transitions.splice(transition_index, 1);
-                        colorTransitionEditor.transitions.splice(transition_index - 1, 0, rmoved[0]);
+                    } else if(colorTransitionEditor.drag_transform.matrix.f * -1 >= tr.obj.position.height / 2  && tr.index > 0) {
+                        var rmoved = colorTransitionEditor.transitions.splice(tr.index, 1);
+                        colorTransitionEditor.transitions.splice(tr.index - 1, 0, rmoved[0]);
                     }else {
                         // if time was short and no significant move - show edit window
                         if(new Date().getTime() - colorTransitionEditor.drag_time_diff < 500) {
                             navigationHelpers.ShowColorPickerDialog(null, function () { 
-                                colorTransitionEditor.updateTrnasitionColors(transition_index, hexToRgb(navigationHelpers.getPeekColor1Hex()), hexToRgb(navigationHelpers.getPeekColor2Hex()));
-                            }, false, 'Transition', '', colorTransitionEditor.transitions[transition_index].start, colorTransitionEditor.transitions[transition_index].stop);
+                                colorTransitionEditor.updateTrnasitionColors(tr.index, hexToRgb(navigationHelpers.getPeekColor1Hex()), hexToRgb(navigationHelpers.getPeekColor2Hex()));
+                            }, false, 'Transition', '', tr.obj.start, tr.obj.stop);
                         }
                     }
                 } 
@@ -571,6 +571,17 @@ var colorTransitionEditor = {
                 colorTransitionEditor.drag_selectedElement = false;
             }
         }
+    },
+
+    getTransitionForSvgObj : function(svg_object) {
+        var transition_index = null;
+        for(i = 0; i < this.transitions.length; i++) {
+            if(this.transitions[i].svg.obj.id === svg_object.id) {
+                transition_index = i;
+                break;
+            }
+        }
+        return { index: transition_index, obj: this.transitions[i] };
     },
 
     updateTrnasitionColors : function(index, start, stop) {
@@ -633,7 +644,7 @@ var colorTransitionEditor = {
 
         this.transitions.push(int_trans);
         this.recalcPositions();     // recalculate positions and dimensions
-        this.makeSvgTrnasition(int_trans);
+        this.makeSvgTrnasition(int_trans, this.transitions.length - 1);
     },
 
     removeTransitions : function() {
@@ -645,6 +656,17 @@ var colorTransitionEditor = {
             }
         }
         this.transitions = [];
+    },
+
+    removeSvgObjects : function(index) {
+        if(this.transitions.length <= index)
+            return;
+
+        for (const key in this.transitions[index].svg) {
+            if (this.transitions[index].svg.hasOwnProperty(key) && this.transitions[index].svg[key] != null ) {
+                this.transitions[index].svg[key].remove();
+            }
+        }
     },
 
     recalcPositions : function() {
@@ -683,7 +705,7 @@ var colorTransitionEditor = {
      * Create transition elements
      * @param {Object} int_trans 
      */
-    makeSvgTrnasition : function(int_trans) {
+    makeSvgTrnasition : function(int_trans, index) {
         // svg gradient
         if(int_trans.svg.gradient == null) {
             int_trans.svg.gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -724,7 +746,7 @@ var colorTransitionEditor = {
         if(int_trans.svg.start_bar == null) {
             int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 
-            this.refreshStop(int_trans);
+            this.refreshStop(int_trans, index);
 
             this.svg.appendChild(int_trans.svg.start_bar);
         }
@@ -733,23 +755,65 @@ var colorTransitionEditor = {
     refresh : function() {
         for (var i = 0; i < this.transitions.length; i++) {
             this.refreshGradient(this.transitions[i]);
-            this.refreshStop(this.transitions[i]);
+            this.refreshStop(this.transitions[i], i);
             this.refreshStripe(this.transitions[i]);
         }
     },
-
-    refreshStop : function(obj) {
-        var p1_x = obj.position.x + obj.position.width + 2;
-        var p1_y = obj.position.y + obj.position.height / 2;
-        var p2_x = obj.position.x + obj.position.width + 8;
-        var p2_y = obj.position.y + obj.position.height / 2;
-        //var p3_x = obj.position.x + obj.position.width + 20;
-        //var p3_y = obj.position.y + obj.position.width + 15;
+    
+    refreshStop : function(obj, index) {
         
-        //obj.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' Q ' + p2_x + ' ' + p2_y + ', ' + p3_x + ' ' + p3_y + ' T ' + p3_x + ' ' + p3_y);
-        obj.svg.start_bar.setAttributeNS(null, 'd', 'M ' + p1_x + ' ' + p1_y + ' L ' + p2_x + ' ' + p2_y );
+        var x_offset = obj.position.x + obj.position.width - 1;
+        var x_curve = 8;
+        var x_distance = 5;
+        var path1 = '';
+        if(((index + 1) % 2) === 0) {
+            x_offset = obj.position.x + 1;
+            x_curve = -8;
+            x_distance = -5;
+        }
+        
+        var y_curve = 5;
+        if(obj.position.height <= 10) {
+            y_curve = obj.position.height / 2;
+        }
+        //top
+        var p1_x = x_offset;
+        var p1_y = obj.position.y;
+        var p2_x = p1_x + x_distance;
+        var p2_y = p1_y;
+        var p3_x = p2_x + x_curve;
+        var p3_y = p2_y;
+        var p4_x = p3_x;
+        var p4_y = p3_y + y_curve;
+        path1 += 'M ' + p1_x + ' ' + p1_y + ' L ' + p2_x + ' ' + p2_y + ' Q ' +  p3_x + ' ' + p3_y + ' , ' + p4_x + ' ' + p4_y;
+        
+        //connector
+        //TODO
+        var e1_x = p4_x;
+        var e1_y = p4_y + obj.position.height - 2* y_curve;
+        path1 += ' L ' + e1_x + ' ' + e1_y;
+
+        //bottom
+        var d1_x = e1_x;
+        var d1_y = e1_y + y_curve;
+        var d2_x = d1_x - x_distance;
+        var d2_y = d1_y;
+        var d3_x = d2_x - x_offset;
+        var d3_y = d2_y;
+        
+        path1 += ' Q ' +  d1_x + ' ' + d1_y + ' , ' + d2_x + ' ' + d3_y + ' L ' + d3_x + ' ' + d3_y;
+
+
+
+        
+        //"M 100 100 L 110 100 Q 115 100, 115 120
+
+        
+
+        obj.svg.start_bar.setAttributeNS(null, 'd', path1);
         obj.svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
         obj.svg.start_bar.setAttributeNS(null, 'stroke', 'black');
+        obj.svg.start_bar.setAttributeNS(null, 'stroke-width', '0.5');
     },
 
     refreshGradient : function(obj) {
