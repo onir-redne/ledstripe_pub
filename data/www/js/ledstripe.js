@@ -435,8 +435,12 @@ var colorTransitionEditor = {
     drag_offset: null, 
     drag_transform: null,
     drag_time_diff: 0,
+    timeadj_selectedElement: false,
+    timeadj_transitionObj: false,
+    timeadj_start_pos: 0,
+    timeadj_precission_modifier: 1,
+    timeadj_start_time: 0,
     date_obj: null,
-
     elements_couner: 0,
     
     init: function(obj_id, x, y, width, heigth, max_time, max_trans) {
@@ -486,9 +490,7 @@ var colorTransitionEditor = {
             
             colorTransitionEditor.drag_selectedElement.remove();
             colorTransitionEditor.svg.appendChild(colorTransitionEditor.drag_selectedElement);
-
             colorTransitionEditor.drag_selectedElement.setAttribute('style', 'filter:url(#dropshadow)');
-
             colorTransitionEditor.drag_offset = colorTransitionEditor.getMousePosition(evt);
             // Make sure the first transform on the element is a translate transform
             var transforms = colorTransitionEditor.drag_selectedElement.transform.baseVal;
@@ -509,17 +511,34 @@ var colorTransitionEditor = {
                 colorTransitionEditor.drag_time_diff = new Date().getTime();
             }
 
-        } else if ((evt.target == colorTransitionEditor.svg_add_button || evt.target.parentNode == colorTransitionEditor.svg_add_button) 
-        && (evt.type == 'touchstart')
-        && (colorTransitionEditor.transitions.length < colorTransitionEditor.max_transitions)) {
+            //add-transition
+        } else if (evt.target.classList.contains('add-transition')) { 
+            if ((evt.type == 'touchstart') && (colorTransitionEditor.transitions.length < colorTransitionEditor.max_transitions)) {
             // add new transition with start color set to preceeding end color
-            var start = {r: 200, g: 200, b: 200};
-            if(colorTransitionEditor.transitions.length > 0) {
-                start = colorTransitionEditor.transitions[colorTransitionEditor.transitions.length - 1].stop;
+                var start = {r: 200, g: 200, b: 200};
+                var stop = {r: 200, g: 200, b: 200};
+                if(colorTransitionEditor.transitions.length > 0) {
+                    start = colorTransitionEditor.transitions[colorTransitionEditor.transitions.length - 1].stop;
+                    stop = start;
+                }
+                //var tr = colorTransitionEditor.getTransitionForSvgObj(colorTransitionEditor.drag_selectedElement);
+                colorTransitionEditor.appdendTransition({start: start, stop: stop, time: 10000, name: ''});
+                colorTransitionEditor.refresh();
             }
-            var tr = colorTransitionEditor.getTransitionForSvgObj(colorTransitionEditor.drag_selectedElement);
-            colorTransitionEditor.appdendTransition({start, stop: {r: 155, g: 155, b: 155}, time: 10000, name: ''});
-            colorTransitionEditor.refresh();
+        } else if (evt.target.classList.contains('time-edit')) {
+
+            colorTransitionEditor.timeadj_selectedElement = evt.target;
+            var tran = colorTransitionEditor.getTransitionForSvgTimeEedit(colorTransitionEditor.timeadj_selectedElement);
+            colorTransitionEditor.timeadj_transitionObj = tran.obj;
+            colorTransitionEditor.timeadj_transitionObj.svg.obj.remove();
+            colorTransitionEditor.svg.appendChild(colorTransitionEditor.timeadj_transitionObj.svg.obj);
+            colorTransitionEditor.timeadj_transitionObj.svg.obj.setAttribute('style', 'filter:url(#dropshadow)');
+            colorTransitionEditor.timeadj_start_pos = colorTransitionEditor.getMousePosition(evt);
+            colorTransitionEditor.timeadj_precission_angle = 1.0; // precision will be updated on move
+            colorTransitionEditor.timeadj_start_time = colorTransitionEditor.timeadj_transitionObj.time; // store start time
+            
+            //create time edit vector (path + circle)
+            colorTransitionEditor.makeTimeAdjustVector(colorTransitionEditor.timeadj_transitionObj);
         }
     },
 
@@ -528,6 +547,24 @@ var colorTransitionEditor = {
           evt.preventDefault();
           var coord = colorTransitionEditor.getMousePosition(evt);
           colorTransitionEditor.drag_transform.setTranslate(coord.x - colorTransitionEditor.drag_offset.x, coord.y - colorTransitionEditor.drag_offset.y);
+        } else if(colorTransitionEditor.timeadj_selectedElement) {
+            evt.preventDefault();
+            var coord = colorTransitionEditor.getMousePosition(evt);
+            var y_diff = Math.abs(coord.y - colorTransitionEditor.timeadj_start_pos.y);
+            var x_diff = Math.abs(coord.x - colorTransitionEditor.timeadj_start_pos.x);
+            colorTransitionEditor.timeadj_precission_modifier = 1000 / Math.floor((x_diff / 25) + 1);
+
+
+            if(coord.y > 0 && coord.x > 0) {
+                if(colorTransitionEditor.timeadj_start_pos.y > coord.y) y_diff *= -1;
+                colorTransitionEditor.timeadj_transitionObj.time = colorTransitionEditor.timeadj_start_time + Math.floor(y_diff * colorTransitionEditor.timeadj_precission_modifier);
+                if(colorTransitionEditor.timeadj_transitionObj.time < 100) colorTransitionEditor.timeadj_transitionObj.time = 100;
+                else if(colorTransitionEditor.timeadj_transitionObj.time > colorTransitionEditor.max_time) colorTransitionEditor.timeadj_transitionObj.time = colorTransitionEditor.max_time;
+            }
+
+            colorTransitionEditor.recalcPositions();
+            colorTransitionEditor.refresh();
+            colorTransitionEditor.refreshTimeAdjustVector(colorTransitionEditor.timeadj_transitionObj, coord.x, coord.y);
         }
     },
 
@@ -569,7 +606,13 @@ var colorTransitionEditor = {
                 colorTransitionEditor.refresh();
                 colorTransitionEditor.drag_transform.setTranslate(0, 0);
                 colorTransitionEditor.drag_selectedElement = false;
+
             }
+        }else if(colorTransitionEditor.timeadj_selectedElement) {
+            colorTransitionEditor.timeadj_transitionObj.svg.obj.setAttribute('style', '');
+            colorTransitionEditor.timeadj_transitionObj.svg.time_adjust.remove();
+            colorTransitionEditor.timeadj_selectedElement = false;
+            colorTransitionEditor.timeadj_transitionObj = false;
         }
     },
 
@@ -582,6 +625,29 @@ var colorTransitionEditor = {
             }
         }
         return { index: transition_index, obj: this.transitions[i] };
+    },
+
+    getTransitionForSvgTimeEedit : function(svg_timeedit) {
+        var transition_index = null;
+        for(i = 0; i < this.transitions.length; i++) {
+            if(this.transitions[i].svg.obj.id === svg_timeedit.id) {
+                transition_index = i;
+                break;
+            }
+        }
+        return { index: transition_index, obj: this.transitions[i] };
+    },
+
+    makeTimeAdjustVector : function(obj_parent) {
+        obj_parent
+        obj_parent.svg.time_adjust = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        obj_parent.svg.time_adjust.setAttributeNS(null, 'fill', 'transparent');
+        obj_parent.svg.time_adjust.setAttributeNS(null, 'stroke', '#606c7073');
+        obj_parent.svg.time_adjust.setAttributeNS(null, 'stroke-width', '14.0'); 
+        obj_parent.svg.time_adjust.setAttributeNS(null, 'stroke-linecap', 'round'); 
+    
+        this.svg.appendChild(obj_parent.svg.time_adjust);
+        this.refreshTimeAdjustVector(obj_parent, this.timeadj_start_pos.x, this.timeadj_start_pos.y);
     },
 
     updateTrnasitionColors : function(index, start, stop) {
@@ -617,21 +683,22 @@ var colorTransitionEditor = {
                 gradient: null,     // related gradient (for color updates)
                 gradient_stop1: null,
                 gradient_stop2: null,
-                start_bar: null,    // top bar 
-                stop_bar: null,    // bottom bar
+                time_path: null,    // top bar 
                 info_box: null,     // box with informations (time)
-                fine_tune: null,    // dragabble fine tunne (for precise time setting)
-            },
-            handlers: {
-                svgh_onmouse_down: null,
-                svgh_onmouse_up: null,
-                svgh_onmouse_move: null,
+                info_box_text: null,
+                time_adjust: null,    // dragabble fine tunne (for precise time setting)
             },
             position: {
                 x: 0,
                 y: 0,
                 width: 0,
                 height: 0,
+            },
+            info_box_position: {
+                x: 0,
+                y: 0,
+                width: 30,
+                height: 16,
             },
             current_start_y: 0,
             current_end_y: 0,
@@ -718,102 +785,96 @@ var colorTransitionEditor = {
             int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop1);
             int_trans.svg.gradient.appendChild(int_trans.svg.gradient_stop2);
 
-            this.refreshGradient(int_trans);
-            
-            // add gradient to defs
             this.svg_defs.appendChild(int_trans.svg.gradient);
+            this.refreshGradient(int_trans);
         } 
 
         // main gradient stripe
         if(int_trans.svg.obj == null) {
 
             int_trans.svg.obj = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            int_trans.svg.obj.setAttributeNS(null, 'width', int_trans.position.width);
-            int_trans.svg.obj.setAttributeNS(null, 'height',  int_trans.position.height);    // will be recalculated later
-            int_trans.svg.obj.setAttributeNS(null, 'x', int_trans.position.x);
-            int_trans.svg.obj.setAttributeNS(null, 'y', int_trans.position.y);
             int_trans.svg.obj.setAttributeNS(null, 'rx', '5');
             int_trans.svg.obj.setAttributeNS(null, 'fill', "url('#svg_gradient-" + int_trans.int_name + "')");
             int_trans.svg.obj.setAttributeNS(null, 'class', "draggable");
             int_trans.svg.obj.setAttributeNS(null, 'id', 'svg_stripe-' + int_trans.int_name);
 
-            this.refreshStripe(int_trans);
-
             this.svg.appendChild(int_trans.svg.obj);
+            this.refreshStripe(int_trans);
         }
 
-        // terminator 1
-        if(int_trans.svg.start_bar == null) {
-            int_trans.svg.start_bar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        // time path and infoobos
+        if(int_trans.svg.time_path == null) {
+            int_trans.svg.time_path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            int_trans.svg.time_path.setAttributeNS(null, 'fill', 'transparent');
+            int_trans.svg.time_path.setAttributeNS(null, 'stroke', '#5c6063');
+            int_trans.svg.time_path.setAttributeNS(null, 'stroke-width', '0.75');
+            this.svg.appendChild(int_trans.svg.time_path);
+            
+            int_trans.svg.info_box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            int_trans.svg.info_box.setAttributeNS(null, 'rx', '5');
+            int_trans.svg.info_box.setAttributeNS(null, 'fill', '#c8ccce');
+            int_trans.svg.info_box.setAttributeNS(null, 'class', "time-edit");
+            int_trans.svg.info_box.setAttributeNS(null, 'stroke-width', '0');
+            int_trans.svg.info_box.setAttributeNS(null, 'stroke', '#5c6063');
+            int_trans.svg.info_box.setAttributeNS(null, 'id', 'svg_stripe-' + int_trans.int_name);
+            this.svg.appendChild(int_trans.svg.info_box);
 
-            this.refreshStop(int_trans, index);
-
-            this.svg.appendChild(int_trans.svg.start_bar);
+            int_trans.svg.info_box_text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            int_trans.svg.info_box.setAttributeNS(null, 'class', "time-edit svg-time-text");
+            this.svg.appendChild(int_trans.svg.info_box_text);
+            
+            this.refreshTimePath(int_trans, index);
         }
     },
 
     refresh : function() {
         for (var i = 0; i < this.transitions.length; i++) {
             this.refreshGradient(this.transitions[i]);
-            this.refreshStop(this.transitions[i], i);
+            this.refreshTimePath(this.transitions[i], i);
             this.refreshStripe(this.transitions[i]);
         }
     },
     
-    refreshStop : function(obj, index) {
+    refreshTimePath : function(obj, index) {
         
         var x_offset = obj.position.x + obj.position.width - 1;
         var x_curve = 8;
         var x_distance = 5;
-        var path1 = '';
+        var x_infobox = -4;
+        var w_infobox = obj.info_box_position.width; //30;
+        var h_infobox = obj.info_box_position.height; // 16;
         if(((index + 1) % 2) === 0) {
             x_offset = obj.position.x + 1;
             x_curve = -8;
             x_distance = -5;
+            x_infobox = 4 - w_infobox;
         }
         
         var y_curve = 5;
         if(obj.position.height <= 10) {
             y_curve = obj.position.height / 2;
         }
-        //top
-        var p1_x = x_offset;
-        var p1_y = obj.position.y;
-        var p2_x = p1_x + x_distance;
-        var p2_y = p1_y;
-        var p3_x = p2_x + x_curve;
-        var p3_y = p2_y;
-        var p4_x = p3_x;
-        var p4_y = p3_y + y_curve;
-        path1 += 'M ' + p1_x + ' ' + p1_y + ' L ' + p2_x + ' ' + p2_y + ' Q ' +  p3_x + ' ' + p3_y + ' , ' + p4_x + ' ' + p4_y;
         
-        //connector
-        //TODO
-        var e1_x = p4_x;
-        var e1_y = p4_y + obj.position.height - 2* y_curve;
-        path1 += ' L ' + e1_x + ' ' + e1_y;
-
-        //bottom
-        var d1_x = e1_x;
-        var d1_y = e1_y + y_curve;
-        var d2_x = d1_x - x_distance;
-        var d2_y = d1_y;
-        var d3_x = d2_x - x_offset;
-        var d3_y = d2_y;
         
-        path1 += ' Q ' +  d1_x + ' ' + d1_y + ' , ' + d2_x + ' ' + d3_y + ' L ' + d3_x + ' ' + d3_y;
-
-
-
+        var path1 = '';
+        path1 += 'M ' + x_offset + ' ' + obj.position.y + ' L ' + (x_offset + x_distance) + ' ' + obj.position.y + ' Q ' +  (x_offset + x_distance + x_curve) + ' ' + obj.position.y + ' , ' + (x_offset + x_distance + x_curve) + ' ' + (obj.position.y +  y_curve);
+        path1 += ' L ' + (x_offset + x_distance + x_curve) + ' ' + (obj.position.y + obj.position.height - y_curve);
+        path1 += ' Q ' +  (x_offset + x_distance + x_curve) + ' ' + (obj.position.y + obj.position.height) + ' , ' + (x_offset + x_curve) + ' ' + (obj.position.y + obj.position.height) + ' L ' + x_offset + ' ' + (obj.position.y + obj.position.height);
+        //path1 += ' M ' + (x_offset + x_distance + x_curve) + ' ' + (obj.position.y + obj.position.height / 2) +  ' L ' +  (x_offset + x_distance + x_curve +  x_infobox) + ' ' + (obj.position.y + obj.position.height / 2);
         
-        //"M 100 100 L 110 100 Q 115 100, 115 120
-
+        obj.svg.time_path.setAttributeNS(null, 'd', path1);
+        obj.svg.info_box.setAttributeNS(null, 'width', w_infobox);
+        obj.svg.info_box.setAttributeNS(null, 'height',  h_infobox);    // will be recalculated later
+        obj.svg.info_box.setAttributeNS(null, 'x', (x_offset + x_distance + x_curve + x_infobox));
+        obj.svg.info_box.setAttributeNS(null, 'y',  (obj.position.y - (h_infobox / 2) + obj.position.height / 2));
         
-
-        obj.svg.start_bar.setAttributeNS(null, 'd', path1);
-        obj.svg.start_bar.setAttributeNS(null, 'fill', 'transparent');
-        obj.svg.start_bar.setAttributeNS(null, 'stroke', 'black');
-        obj.svg.start_bar.setAttributeNS(null, 'stroke-width', '0.5');
+        // update
+        obj.info_box_position.x = (x_offset + x_distance + x_curve + x_infobox + 6);
+        obj.info_box_position.y =  (obj.position.y + 4 + obj.position.height / 2);
+        
+        obj.svg.info_box_text.setAttributeNS(null, 'x', obj.info_box_position.x);
+        obj.svg.info_box_text.setAttributeNS(null, 'y',  obj.info_box_position.y);
+        obj.svg.info_box_text.textContent = String((obj.time / 1000).toPrecision(2))
     },
 
     refreshGradient : function(obj) {
@@ -832,6 +893,12 @@ var colorTransitionEditor = {
             obj.svg.obj.setAttributeNS(null, 'x', obj.position.x);
             obj.svg.obj.setAttributeNS(null, 'y', obj.position.y);
         }
+    },
+
+    refreshTimeAdjustVector : function(obj_parent, x, y) {
+        var path1 = '';
+        path1 += 'M ' + obj_parent.info_box_position.x + ' ' + obj_parent.info_box_position.y + ' L ' + x + ' ' + y;
+        obj_parent.svg.time_adjust.setAttributeNS(null, 'd', path1);
     },
 }
 
