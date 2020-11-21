@@ -4,8 +4,8 @@ import argparse
 import os
 import subprocess
 
-ESPLIB_PATH_FSTOOLS = 'tools/mklittlefs/2.5.0-4-69bd9e6/'
-ESPLIB_PATH_HWTOOLS = 'hardware/esp8266/2.6.3/tools/esptool/'
+ESPLIB_PATH_FSTOOLS = 'tools/mklittlefs/2.5.0-4-fe5bb56/'
+ESPLIB_PATH_HWTOOLS = 'hardware/esp8266/2.7.4/tools/esptool/'
 ESPLIB_PATH = 'C:/Users/onir/AppData/Local/Arduino15/packages/esp8266/'
 
 class ExceptionLfsUpd(Exception):

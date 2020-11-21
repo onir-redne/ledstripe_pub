@@ -322,6 +322,51 @@ void  WebAjaxSavedColorsSync(void)
 }
 
 ////////////////////////////////////////////////
+// AJAX Transitions
+void WebAjaxSavedTransSet(void)
+{
+
+}
+
+void WebAjaxSavedTransGet(void)
+{
+  Serial.printf("AJAX: %s\r\n", server.uri().c_str());
+  char json_buffer[JSON_SAVED_COLOR_ENTRY * MAX_SAVED_COLORS] = {0};
+  uint16_t offset = 0;
+  uint8_t r = 0, g = 0, b = 0, set = 0, id = 0, cfree = 0, cmax = 0;
+  char name [COLOR_NAME_LEN] = {0};
+  cfree = saved_colors.GetFreeColorsCount();
+  cmax = saved_colors.GetColorsCount();
+
+  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"colors\": [", cmax, cfree);
+  while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
+  {
+    offset += sprintf(json_buffer + offset, "{\"id\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"set\":%u,\"name\":\"%s\"},", id, r, g, b, set, name);
+    name[0] = 0;
+  }
+
+  if(cfree < cmax)
+    offset--;
+
+  json_buffer[offset++] = ']';
+  json_buffer[offset++] = '}';
+
+  server.send(200, content_json, json_buffer);
+  Serial.print(json_buffer);
+  Serial.println(" - 200");
+}
+
+void WebAjaxSavedTransDel(void)
+{
+
+}
+
+void WebAjaxSavedTransSync(void)
+{
+
+}
+
+////////////////////////////////////////////////
 // AJAX Power
 void WebAjaxPowerOffHandler(void)
 {
@@ -418,19 +463,26 @@ void setup()
   server.on("/ajax/setcolor", WebAjaxSetColorHandler);    // set static color
   server.on("/ajax/setpeek", WebAjaxPeekColorHandler);    //  enable peek mode and set the peek color
   server.on("/ajax/unsetpeek", WebAjaxUnsetPeekColorHandler);    //  stop peek mode
+  
   server.on("/ajax/getstripesstate",  WebAjaxGetStripesStateHandler);    // Get current static colors for all stripes
   server.on("/ajax/savedcolors_set", WebAjaxSavedColorsSet);    // add / set colors to favotites (do not save to flash)
   server.on("/ajax/savedcolors_get", WebAjaxSavedColorsGet);    // get favorite colors
   server.on("/ajax/savedcolors_del", WebAjaxSavedColorsDel);    // delete color from favorites
   server.on("/ajax/savedcolors_sync", WebAjaxSavedColorsSync);  // update flash
+  
   //server.on("/ajax/getconfig", WebAjaxSetColorHandler);   // return configuration
   //server.on("/ajax/saveconfig", WebAjaxSetColorHandler);  // save configuration (try to cache it to limit flash writes)
   //server.on("/ajax/reset", WebAjaxSetColorHandler);       // reboot device
+  
   server.on("/ajax/poweroff", WebAjaxPowerOffHandler);    // turn off
   server.on("/ajax/poweron", WebAjaxPowerOnHandler);     // turn on
-    server.on("/ajax/powertimer", WebAjaxPowerTimerHandler);     // turn on
-  //server.on("/ajax/selecttranset", WebAjaxSetColorHandler); // set transition-set 
-  //server.on("/ajax/setransition", WebAjaxSetColorHandler);  // set single transition
+   server.on("/ajax/powertimer", WebAjaxPowerTimerHandler);     // turn on
+  
+  server.on("/ajax/savedtrans_set", WebAjaxSavedTransSet);    // add / set trans-sets to favotites (do not save to flash)
+  server.on("/ajax/savedtrans_get", WebAjaxSavedTransGet);    // get saved trans-sets
+  server.on("/ajax/savedtrans_del", WebAjaxSavedTransDel);    // delete trans from favorites
+  server.on("/ajax/savedtrans_sync", WebAjaxSavedTransSync);  // update flash
+
   server.onNotFound(WebRootHandler);  // handle all uri's but ajax
   server.begin();
   Serial.println("done");

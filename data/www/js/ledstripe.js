@@ -29,7 +29,8 @@ window.onload = function() {
     navigationHelpers.init();
     powerManagement.init();
     stripeState.init();
-    colorTransitionEditor.init('svg_trans_editor', 0, 0, 200, 300, 60000, 8);
+    //window.innerWidth & window.innerHeight
+    colorTransitionEditor.init('svg_trans_editor', 0, 0, window.innerWidth /2, window.innerHeight /2.6, 60000, 8);
 
     navigationHelpers.ShowLoadingOverlay();
 
@@ -291,15 +292,102 @@ var navigationHelpers = {
     }
 }
 
+var savedTransitions = {
+    load : function(target) {
+        $.getJSON('/ajax/savedtrans_get', function(response) {
+            target.html('');
+            var new_html = '';
+            for (i = 0; i < response.transset.length; i++) {
+
+                for (i = 0; i < response.transset[i] i++) {
+
+                }
+
+                var c = {
+                    r1: response.transitions[i].r, 
+                    g1 : response.colors[i].g, 
+                    b1 : response.colors[i].b
+                };
+                
+                hsv = rgbToHsv(c.r, c.g, c.b);
+                var vc = hsvToRgb(hsv.h, hsv.s, 1);
+                var cid = response.colors[i].id;
+                var name = response.colors[i].name;
+                
+                new_html += `
+                <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(`+ c.r +`,`+ c.g +`,`+ c.b +`,1) 40%, rgba(` + vc.r + `,` + vc.g + `,` + vc.b + `,1) 100%);">
+                    <div class="ui-block-a">
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, null);"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(` + cid + `); });"></a>
+                    </div>
+                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(0, `+ c.r +`,`+ c.g +`,`+ c.b +`);">A</a></div>
+                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(1, `+ c.r +`,`+ c.g +`,`+ c.b +`);">B</a></div>
+                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(2, `+ c.r +`,`+ c.g +`,`+ c.b +`);">C</a></div>
+                    <div class="saved-color-text center-wrapper">` + name + `</div>
+                </div>`;
+                }
+            // when empty list just or free slots left append ADD button
+            if(response.free > 0) {
+                new_html += "<button class=\"ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left\" onclick=\"navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.add(); }, true, 'Add color', '', { r: 255, g: 255, b: 255 });\">Add color</button>";
+            }
+            target.html(new_html);
+        });
+    },
+
+    add : function() {
+        var rgb_color = dialog_color_picker.getCurColorRgb();
+        var name = $('#color_peeker_dialog_name').val();
+        $.getJSON('/ajax/savedtrans_set', {
+            'r' : rgb_color.r,
+            'g' : rgb_color.g,
+            'b' : rgb_color.b,
+            'name': name},
+            function(response) {
+                // reload colors on success
+                this.load();
+            });
+    },
+
+    set : function(tid)  {
+        var rgb_color = dialog_color_picker.getCurColorRgb();
+        var name = $('#color_peeker_dialog_name').val();
+        $.getJSON('/ajax/savedtrans_set', {
+            'id' : cid,
+            'r' : rgb_color.r,
+            'g' : rgb_color.g,
+            'b' : rgb_color.b,
+            'name': name},
+            function(response) {
+                // reload colors on success
+                this.load();
+            });
+    },
+
+    delete : function(tid)  {
+        var rgb_color = dialog_color_picker.getCurColorRgb();
+        var name = $('#color_peeker_dialog_name').val();
+        $.getJSON('/ajax/savedtrans_del', {'id' : cid},
+            function(response) {
+                // reload colors on success
+                this.load();
+            });
+    },
+
+    sync : function() {
+        $.getJSON('/ajax/savedtrans_sync', {},
+        function(response) {
+            // reload colors on success
+            this.load();
+        });
+    }
+}
+
 
 /**
  * Saved colors
  */
 var savedColors = {
-    /**
-     * Get current colors from device
-     * @param {*} target 
-     */
+
     load : function(target) {
         $.getJSON('/ajax/savedcolors_get', function(response) {
             target.html('');
@@ -348,13 +436,6 @@ var savedColors = {
         });
     },
 
-    /**
-     *  Add to free slot 
-     * @param {*} sender 
-     * @param {*} rgb_color 
-     * @param {*} hsv_color 
-     * @param {*} name 
-     */
     add : function() {
         var rgb_color = dialog_color_picker.getCurColorRgb();
         var name = $('#color_peeker_dialog_name').val();
@@ -736,6 +817,10 @@ var colorTransitionEditor = {
         }
     },
 
+    recalcXY2Time : function(trans_obj, x, y) {
+
+    },
+
     recalcPositions : function() {
         var y_offset = 0;
         this.total_time = 0;
@@ -900,6 +985,8 @@ var colorTransitionEditor = {
         path1 += 'M ' + obj_parent.info_box_position.x + ' ' + obj_parent.info_box_position.y + ' L ' + x + ' ' + y;
         obj_parent.svg.time_adjust.setAttributeNS(null, 'd', path1);
     },
+
+
 }
 
 
@@ -976,7 +1063,7 @@ var powerManagement = {
     },
 
     ajaxSetLedstripesPower : function(self) {
-        if(this.value == 'on') {
+        if(powerManagement.power_sw.val() == 'on') {
             $.ajax({'url' : '/ajax/poweron'});
         } else {
             $.ajax({'url' : '/ajax/poweroff'});
@@ -986,39 +1073,39 @@ var powerManagement = {
     ajaxGetLestripesState : function() {
         $.getJSON('/ajax/getstripesstate', function(jsondata) {
             
-            if(!this.poweroff_slider_user_int) {
-                this.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
-                this.poweroff_slider.slider( "refresh" );
+            if(!powerManagement.poweroff_slider_user_int) {
+                powerManagement.poweroff_slider.val((jsondata.timer / 60).toFixed(1));
+                powerManagement.poweroff_slider.slider( "refresh" );
             }
             if(jsondata.power == 1) {
                 if($("#power_sw option:selected").val() != 'on')
-                    this.power_sw.val("on").change();
+                powerManagement.power_sw.val("on").change();
             } else {
                 if($("#power_sw option:selected").val() != 'off')
-                    this.power_sw.val("off").change();
+                powerManagement.power_sw.val("off").change();
             }
             
-            if(jsondata.sync != 0 && !this.sync_switch) {
+            if(jsondata.sync != 0 && !powerManagement.sync_switch) {
                 $("#falsh-sync-button").css("border-color", "brown");
                 $("#falsh-sync-button").css("border-width", "3px");
-                this.sync_switch = true;
-            } else if(jsondata.sync == 0 && this.sync_switch) {
+                powerManagement.sync_switch = true;
+            } else if(jsondata.sync == 0 && powerManagement.sync_switch) {
                 $("#falsh-sync-button").css("border-color", "grey");
                 $("#falsh-sync-button").css("border-width", "1px");
-                this.sync_switch = false;
+                powerManagement.sync_switch = false;
             }
          });
     },
 
     poweroffTimerOnSlideStart : function(event, ui) {
-        this.poweroff_slider_user_int = true;   // prevent updating when user interacts
+        powerManagement.poweroff_slider_user_int = true;   // prevent updating when user interacts
     },
 
     poweroffTimerOnSlideEnd : function(event, ui) {
         //event.preventDefault();
         //event.stopPropagation();
-        powerManagement.ajaxSetLedstripesPowerTimer(this.poweroff_slider.val());
-        this.poweroff_slider_user_int = false;
+        powerManagement.ajaxSetLedstripesPowerTimer(powerManagement.poweroff_slider.val());
+        powerManagement.poweroff_slider_user_int = false;
     },
 
     poweroffTimerOnChange : function(event, ui) {
