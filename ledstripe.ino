@@ -16,6 +16,7 @@
 #include "ledstripestate.h"
 #include "ledstripectl.h"
 #include "savedcolors.h"
+#include "savedtransset.h"
 
 #ifdef ESP32
   #include "spectrum.h"
@@ -67,10 +68,11 @@ const int led_C_Blue =  PIN_D7;
   LedStripeCtl led_stipe_B = LedStripeCtl(led_B_Red, led_B_Green, led_B_Blue, PWM_DUTY_CYCLE);
   LedStripeCtl led_stipe_C = LedStripeCtl(led_C_Red, led_C_Green, led_C_Blue, PWM_DUTY_CYCLE);
 #endif
-LedStripeCtl * led_stripes[] = {&led_stipe_A, &led_stipe_B, &led_stipe_C};
 
+LedStripeCtl * led_stripes[] = {&led_stipe_A, &led_stipe_B, &led_stipe_C};
 Ticker timer_leds = Ticker();
 SavedColors saved_colors = SavedColors(SAVED_COLORS_FILE);
+SavedTransSet saved_transsets = SavedTransSet(SAVED_TRANS_FILE);
 
 ////////////////////////////////////////
 // Power
@@ -325,27 +327,81 @@ void  WebAjaxSavedColorsSync(void)
 // AJAX Transitions
 void WebAjaxSavedTransSet(void)
 {
+  Serial.printf("AJAX: %s", server.uri().c_str());
+  uint8_t stripes[TRANS_STRIPE_RECORD_LEN] = {0};
+  uint16_t scount = 0;
+  const char * name = server.arg('name').c_str();
 
+  for(scount; scount < MAX_STRIPE_TRANSITIONS; scount++)
+  {
+    char field[4] = {0};
+    sprintf(field, "r%d1", scount);
+
+    uint8_t r1 = atoi(server.arg(field).c_str());
+    sprintf(field, "g%d1", scount);
+    uint8_t g1 = atoi(server.arg(field).c_str());
+    sprintf(field, "b%d1", scount);
+    uint8_t b1 = atoi(server.arg(field).c_str());
+    sprintf(field, "r%d2", scount);
+    uint8_t r2 = atoi(server.arg(field).c_str());
+    sprintf(field, "g%d2", scount);
+    uint8_t g2 = atoi(server.arg(field).c_str());
+    sprintf(field, "b%d2", scount);
+    uint8_t b2 = atoi(server.arg(field).c_str());
+    sprintf(field, "t%d", scount);
+    uint16_t time = atoi(server.arg(field).c_str());
+    SavedTransSet::Convert2Stripe(stripes + MAX_STRIPE_TRANSITIONS * scount, r1, g1, b1, r2, g2, b2, time);
+  }
+ 
+  if(server.arg("id").length() > 0)
+  {
+    uint8_t id = atoi(server.arg("id").c_str());
+    saved_transsets.SetTransSet(id, stripes, scount, server.arg("name").c_str());
+  }
+  else
+  {
+    saved_transsets.AddTransSet(stripes, scount, server.arg("name").c_str());
+  }
+  server.send(200, content_plain);
+  Serial.println(" - 200");
 }
 
 void WebAjaxSavedTransGet(void)
 {
   Serial.printf("AJAX: %s\r\n", server.uri().c_str());
-  char json_buffer[JSON_SAVED_COLOR_ENTRY * MAX_SAVED_COLORS] = {0};
+  char json_buffer[JSON_SAVED_TRANS_ENTRY * MAX_SAVED_TRNAS_SETS] = {0};
   uint16_t offset = 0;
-  uint8_t r = 0, g = 0, b = 0, set = 0, id = 0, cfree = 0, cmax = 0;
-  char name [COLOR_NAME_LEN] = {0};
-  cfree = saved_colors.GetFreeColorsCount();
-  cmax = saved_colors.GetColorsCount();
+  uint16_t time = 0;
+  uint8_t r1 = 0, g1 = 0, b1 = 0, r2 = 0, g2 = 0, b2 = 0, set = 0, id = 0, sfree = 0, smax = 0;
+  char name [TRANS_SET_NAME_LEN] = {0};
+  uint8_t stripe[TRANS_STRIPE_RECORD_LEN] = {0};
+  sfree = saved_transsets.GetFreeTransSetCount();
+  smax = saved_transsets.GetTransSetsCount();
 
-  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"colors\": [", cmax, cfree);
-  while(saved_colors.GetNextColor(&r, &g, &b, &set, &id, name))
+  Serial.printf("sfree: %u, smax: %u\r\n", sfree, smax);
+
+  offset += sprintf(json_buffer + offset, "{\"max\":%u,\"free\":%u,\"sets\":[", smax, sfree);
+  while(saved_transsets.GetNextTransSet(stripe, &set, &id, name))
   {
-    offset += sprintf(json_buffer + offset, "{\"id\":%u,\"r\":%u,\"g\":%u,\"b\":%u,\"set\":%u,\"name\":\"%s\"},", id, r, g, b, set, name);
+    offset += sprintf(json_buffer + offset, "{\"id\":%u,\"name\":\"%s\",\"trans:[\"", id, set, name);
+    int str_idx = 0;
+    for(str_idx; str_idx < MAX_STRIPE_TRANSITIONS; str_idx++) 
+    {
+      SavedTransSet::ParseStripe(str_idx, stripe, &r1, &g1, &b1, &r2, &g2, &b2, &time);
+      if(time == 0)
+        break;
+
+      sprintf(json_buffer + offset, "{\"r1\":%u,\"g1\":%u,\"b1\":%u,\"r2\":%u,\"g2\":%u,\"b2\":%u,\"time\":%u},", r1, g1, b1, r2, g2, b2, time);
+    }
+
+    if(str_idx)
+      offset--;
+
+    sprintf(json_buffer + offset, "]},");
     name[0] = 0;
   }
 
-  if(cfree < cmax)
+  if(sfree < smax)
     offset--;
 
   json_buffer[offset++] = ']';
@@ -457,6 +513,7 @@ void setup()
 
   Serial.print("***** Loading ledstripes configuration: ");
   saved_colors.Init();
+  saved_transsets.Init();
   
  
   Serial.print("***** Settingup web server: ");

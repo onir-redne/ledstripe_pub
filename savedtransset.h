@@ -166,7 +166,7 @@ public:
         }
     }
 
-    bool AddTransSet(uint8_t index, uint8_t * stripes, uint16_t stripes_count, const char * name)
+    bool AddTransSet(uint8_t * stripes, uint16_t stripes_count, const char * name)
     {
         int i = 0;
         while(i < MAX_SAVED_COLORS)
@@ -180,7 +180,7 @@ public:
             else
             {
                 Serial.printf("AddTransSet(): #%u is free ...\r\n", i);
-                SetTransSet(index, stripes, stripes_count, name);
+                SetTransSet(i, stripes, stripes_count, name);
                 free_sets--;
                 sync = true;
                 return true;
@@ -219,7 +219,7 @@ public:
     bool GetNextTransSet(uint8_t * stripes, uint8_t *set, uint8_t * id, char * name)
     {
         uint8_t * p = nullptr;
-        while(transset_ptr < MAX_SAVED_COLORS)
+        while(transset_ptr < MAX_SAVED_TRNAS_SETS)
         {
             p = &transsets[transset_ptr * TRANS_SET_RECORD_LEN];
             
@@ -296,7 +296,7 @@ public:
 protected:
 
     // color name up to 16 chars + null
-    uint8_t transsets[];
+    uint8_t transsets[TRANS_SET_ARRAY_SIZE];
     uint8_t free_sets;
     uint8_t transset_ptr;
     String filename;

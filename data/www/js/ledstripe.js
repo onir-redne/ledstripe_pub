@@ -160,7 +160,7 @@ var navigationHelpers = {
         this.trans_edit_dialog_text = $('#trans_edit_dialog_text');
         this.trans_edit_dialog_name = $('#trans_edit_dialog_name');
         this.trans_edit_dialog = $('#trans_edit_dialog');
-        this.trans_edit_dialog_OK = $('#color_peeker_dialog_OK');
+        this.trans_edit_dialog_OK = $('#trans_edit_dialog_OK');
         
         this.loading_overlay = $('#loading_overlay');
 
@@ -186,6 +186,10 @@ var navigationHelpers = {
         if(ui.toPage[0].id == 'saved-colors') {
             this.ShowLoadingOverlay();
             savedColors.load(this.saved_colors_list);
+            this.HideLoadingOverlay();
+        }else if (ui.toPage[0].id == 'transition-sets') {
+            this.ShowLoadingOverlay();
+            savedTransitions.load(this.transition_sets_list);
             this.HideLoadingOverlay();
         }
     },
@@ -262,7 +266,7 @@ var navigationHelpers = {
             this.trans_edit_dialog_text.text(message);
             this.trans_edit_dialog_text.show();
         } else {
-            this.trans_edit_dialog_text.text("");
+            this.trans_edit_dialog_text.text('');
             this.trans_edit_dialog_text.hide();
         }
         if(set_name) {
@@ -273,21 +277,17 @@ var navigationHelpers = {
 
         if(set_values_array) {
             // load array
+            colorTransitionEditor.setupTransitions(set_values_array);
         } else {
-            // empty set
+            // empty set with one sample transition
+            colorTransitionEditor.setupTransitions([
+                {start: {r: 0, g: 0, b: 0}, stop: {r: 130, g: 220, b: 180}, time: 10000, name: 'sample'}
+            ]);
         }
-        
         
         // bind handler
         this.trans_edit_dialog_OK.on('click', ok_handler);        
         // redraw
-        colorTransitionEditor.setupTransitions([
-            {start: {r: 0, g: 0, b: 0}, stop: {r: 190, g: 220, b: 200}, time: 56000, name: 'stripe e'}, 
-            {start: {r: 180, g: 0, b: 0}, stop: {r: 50, g: 80, b: 200}, time: 10000, name: 'stripe a'}, 
-            {start: {r: 50, g: 80, b: 200}, stop: {r: 0, g: 180, b: 50}, time: 5000, name: 'stripe b'},
-            {start: {r: 0, g: 180, b: 50}, stop: {r: 50, g: 200, b: 120}, time: 1500, name: 'stripe c'},
-            {start: {r: 59, g: 90, b: 0}, stop: {r: 190, g: 220, b: 10}, time: 41000, name: 'stripe f'}, 
-        ]);
         $.mobile.changePage('#trans_edit_dialog');
     }
 }
@@ -295,27 +295,34 @@ var navigationHelpers = {
 var savedTransitions = {
     load : function(target) {
         $.getJSON('/ajax/savedtrans_get', function(response) {
-            target.html('');
             var new_html = '';
-            for (i = 0; i < response.transset.length; i++) {
+            target.html('');
+            
+            for (var i = 0; i < response.sets.length; i++) {
+                var tmp_set = response.sets[i];
+                var tmp_total_time = 0;
+                var cid = tmp_set.id;
+                var name = tmp_set.name;
 
-                for (i = 0; i < response.transset[i] i++) {
-
+                for (var j = 0; j < tmp_set.trans.length; j++) {
+                    tmp_total_time += tmp_set_trans[j].time;
                 }
 
-                var c = {
-                    r1: response.transitions[i].r, 
-                    g1 : response.colors[i].g, 
-                    b1 : response.colors[i].b
-                };
-                
-                hsv = rgbToHsv(c.r, c.g, c.b);
-                var vc = hsvToRgb(hsv.h, hsv.s, 1);
-                var cid = response.colors[i].id;
-                var name = response.colors[i].name;
+                var tmp_style_gradient = 'linear-gradient(90deg, ';
+                var last_percents = 0;
+                for (var j = 0; j < tmp_set.trans.length; j++) {
+                    var percents = 100 * tmp_set_trans[j].time / tmp_total_time;
+                    
+                    tmp_style_gradient += 'rgba(' + tmp_set_trans.r1 + ',' + tmp_set_trans.g1 + ',' + tmp_set_trans.b1 +  ',1) ' + last_percents + '%,' + 'rgba(' + tmp_set_trans.r2 + ',' + tmp_set_trans.g2 + ',' + tmp_set_trans.b2 +  ',1) ' + last_percents + '%';
+                    last_percents = percents;
+
+                    if(j < tmp_set.trans.length - 1)
+                        tmp_style_gradient += ',';
+                }
+                tmp_style_gradient += ');'
                 
                 new_html += `
-                <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(`+ c.r +`,`+ c.g +`,`+ c.b +`,1) 40%, rgba(` + vc.r + `,` + vc.g + `,` + vc.b + `,1) 100%);">
+                <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: ` + tmp_style_gradient + `">
                     <div class="ui-block-a">
                         <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, null);"></a>
                         <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(` + cid + `); });"></a>
@@ -325,10 +332,10 @@ var savedTransitions = {
                     <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(2, `+ c.r +`,`+ c.g +`,`+ c.b +`);">C</a></div>
                     <div class="saved-color-text center-wrapper">` + name + `</div>
                 </div>`;
-                }
+            }
             // when empty list just or free slots left append ADD button
             if(response.free > 0) {
-                new_html += "<button class=\"ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left\" onclick=\"navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.add(); }, true, 'Add color', '', { r: 255, g: 255, b: 255 });\">Add color</button>";
+                new_html += `<button class="ui-btn ui-icon-plus ui-corner-all ui-btn-icon-left" onclick="navigationHelpers.ShowTransEditDialog(event.target, function() { savedTransitions.add(); }, true, null ,'', null);">Add transition</button>`;
             }
             target.html(new_html);
         });
@@ -336,29 +343,55 @@ var savedTransitions = {
 
     add : function() {
         var rgb_color = dialog_color_picker.getCurColorRgb();
-        var name = $('#color_peeker_dialog_name').val();
-        $.getJSON('/ajax/savedtrans_set', {
-            'r' : rgb_color.r,
-            'g' : rgb_color.g,
-            'b' : rgb_color.b,
-            'name': name},
+        var name = $('#trans_edit_dialog_name').val();
+
+        // get data from transition editor prepare get
+        var get_data = {
+            name: name,
+        };
+
+        for(var i = 0; i < colorTransitionEditor.transitions.length; i++) {
+            get_data['r' + i + '1'] = colorTransitionEditor.transitions[i].start.r;
+            get_data['g' + i + '1'] = colorTransitionEditor.transitions[i].start.g;
+            get_data['b' + i + '1'] = colorTransitionEditor.transitions[i].start.b;
+            get_data['r' + i + '2'] = colorTransitionEditor.transitions[i].stop.r;
+            get_data['g' + i + '2'] = colorTransitionEditor.transitions[i].stop.g;
+            get_data['b' + i + '2'] = colorTransitionEditor.transitions[i].stop.b;
+            get_data['t' + i] = colorTransitionEditor.transitions[i].time;
+        }
+
+        $.getJSON('/ajax/savedtrans_set', get_data,
             function(response) {
-                // reload colors on success
+                // reload trans sets on success
                 this.load();
             });
     },
 
     set : function(tid)  {
         var rgb_color = dialog_color_picker.getCurColorRgb();
-        var name = $('#color_peeker_dialog_name').val();
-        $.getJSON('/ajax/savedtrans_set', {
-            'id' : cid,
-            'r' : rgb_color.r,
-            'g' : rgb_color.g,
-            'b' : rgb_color.b,
-            'name': name},
+        var name = $('#trans_edit_dialog_name').val();
+
+        // get data from transition editor prepare get
+        var get_data = {
+            name: name,
+        };
+
+        if(tid != null) 
+            get_data.push('id', tid);
+
+        for(var i = 0; i < colorTransitionEditor.transitions.length; i++) {
+            get_data.push('r' + i + '1', colorTransitionEditor.transitions[i].start.r);
+            get_data.push('g' + i + '1', colorTransitionEditor.transitions[i].start.g);
+            get_data.push('b' + i + '1', colorTransitionEditor.transitions[i].start.b);
+            get_data.push('r' + i + '2', colorTransitionEditor.transitions[i].stop.r);
+            get_data.push('g' + i + '2', colorTransitionEditor.transitions[i].stop.g);
+            get_data.push('b' + i + '2', colorTransitionEditor.transitions[i].stop.b);
+            get_data.push('t' + i, colorTransitionEditor.transitions[i].time);
+        }
+
+        $.getJSON('/ajax/savedtrans_set', get_data,
             function(response) {
-                // reload colors on success
+                // reload trans sets on success
                 this.load();
             });
     },
@@ -985,8 +1018,6 @@ var colorTransitionEditor = {
         path1 += 'M ' + obj_parent.info_box_position.x + ' ' + obj_parent.info_box_position.y + ' L ' + x + ' ' + y;
         obj_parent.svg.time_adjust.setAttributeNS(null, 'd', path1);
     },
-
-
 }
 
 

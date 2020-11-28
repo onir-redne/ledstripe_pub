@@ -62,7 +62,7 @@
 <div data-role="page" id="saved-colors" data-title="Saved Colors">
 	<div role="main" class="ui-content">
         <div class="ui-field-contain"  id="saved_colors_list" >
-            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgba(100,130,200,1) 40%, rgba(200,220,255,1) 100%);">
+            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(0deg, rgb(124, 126, 133) 40%, rgba(200,220,255,1) 100%);">
                 <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(0); }, true, 'edit color' ,'test edit',{ r: 120, g:90, b:200});"></a>
                 <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(0); });"></a></div>
 
@@ -80,7 +80,7 @@
 <div data-role="page" id="transition-sets" data-title="Transition Sets">
 	<div role="main" class="ui-content">
         <div class="ui-field-contain" id="transition_sets_list">
-            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element">
+            <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: linear-gradient(90deg, rgb(238, 143, 0) 0%, rgb(0, 94, 255) 33%,  rgb(26, 110, 30) 66%, rgb(187, 10, 128) 100%);">
                 <div class="ui-block-a"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext"></a>
                 <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext"></a></div>
                 <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp">A</a></div>
@@ -164,7 +164,7 @@
         <input type="text" style="text-align:center;" name="text-basic" id="trans_edit_dialog_name" value="" maxlength="16" hidden>
         <div data-role="controlgroup" data-type="horizontal">
             <a href="#" data-rel="back" class="ui-btn ui-shadow ui-corner-all ui-icon-delete ui-btn-b ui-btn-icon-left">Cancel</a>
-            <a href="#" data-rel="back" id="trans_edit_dialogg_OK" class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-b ui-btn-icon-right">OK</a>
+            <a href="#" data-rel="back" id="trans_edit_dialog_OK" class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-b ui-btn-icon-right">OK</a>
         </div>
     </div>
 </div>
