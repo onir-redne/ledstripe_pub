@@ -35,7 +35,7 @@ public:
 
     void Init(void)
     {
-        Serial.printf("SavedColors: loading from save file [%s]\r\n", filename.c_str());
+        SPRNTF("SavedColors: loading from save file [%s]\r\n", filename.c_str());
         fs::File file = LittleFS.open(filename, "r");
         if(file.isFile()/* && !(file.size() % COLOR_RECORD_LEN)*/)
         {
@@ -46,7 +46,7 @@ public:
                 if(!(colors[offset - COLOR_ARRAY_SIZE] & (uint8_t)COLOR_SET_ENABLED_MASK))
                     free_colors++;
 
-                Serial.printf("   #%u r:%u g:%u b:%u [%s]\r\n", i, colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_R], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_G], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_B], &colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_NAME]);
+                SPRNTF("   #%u r:%u g:%u b:%u [%s]\r\n", i, colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_R], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_G], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_B], &colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_NAME]);
                 i++;
 
             }
@@ -55,14 +55,14 @@ public:
         else
         {
             // no file will create one in sync
-            Serial.println("SavedColors: save file not fond - init empty table!");
+            SPRNTLN("SavedColors: save file not fond - init empty table!");
             memset(colors, 0, COLOR_ARRAY_SIZE);
             // update free indexes
             free_colors = MAX_SAVED_COLORS;
         }
         
         
-        Serial.printf("SavedColors: memory: %p colors: %u, not set: %u\r\n", colors,  MAX_SAVED_COLORS, free_colors);
+        SPRNTF("SavedColors: memory: %p colors: %u, not set: %u\r\n", colors,  MAX_SAVED_COLORS, free_colors);
     }
 
     // sync to file
@@ -75,11 +75,11 @@ public:
         fs::File file = LittleFS.open(filename, "w+");
         if(file.isFile())
         {
-            Serial.printf("SavedColors: writing to file [%s]\r\n", filename.c_str());
+            SPRNTF("SavedColors: writing to file [%s]\r\n", filename.c_str());
 
             for(int i = 0; i < MAX_SAVED_COLORS; i++)
             {
-                Serial.printf("   #%u r:%u g:%u b:%u [%s]\r\n", i, colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_R], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_G], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_B], &colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_NAME]);
+                SPRNTF("   #%u r:%u g:%u b:%u [%s]\r\n", i, colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_R], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_G], colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_B], &colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_NAME]);
                 colors[(i * COLOR_RECORD_LEN) + COLOR_SAVE_SET] |= (uint8_t)COLOR_SET_SYNCED_MASK;  // mark files synced
             }
 
@@ -90,7 +90,7 @@ public:
         else
         {
             // no file will create one in sync
-            Serial.println("SavedColors: error while writing to file!");
+            SPRNTLN("SavedColors: error while writing to file!");
         }
     }
 
@@ -104,7 +104,7 @@ public:
         if(index <= MAX_SAVED_COLORS)
         {
             uint8_t * p = &colors[index * COLOR_RECORD_LEN];
-            Serial.printf("SetColor(): #%u r:%u g:%u b:%u [%s] - ",index, r, g, b, name);
+            SPRNTF("SetColor(): #%u r:%u g:%u b:%u [%s] - ",index, r, g, b, name);
             p[COLOR_SAVE_R]  = r;
             p[COLOR_SAVE_G]  = g;
             p[COLOR_SAVE_B]  = b;
@@ -115,10 +115,10 @@ public:
             p[COLOR_SAVE_SET] |= (uint8_t)COLOR_SET_ENABLED_MASK;
             p[COLOR_SAVE_SET] &= ~(uint8_t)COLOR_SET_SYNCED_MASK; // mark unsynced!
             
-            Serial.printf("set: %02X, ", colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET]);
+            SPRNTF("set: %02X, ", colors[(index * COLOR_RECORD_LEN) + COLOR_SAVE_SET]);
             strncpy((char*)(&p[COLOR_SAVE_NAME]), name, COLOR_NAME_LEN - 1);
-            Serial.printf("name: %s\r\n", &p[COLOR_SAVE_NAME]);
-            Serial.printf("SetColor(): %p [%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X]\r\n", p, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16], p[17], p[18], p[19], p[20]);
+            SPRNTF("name: %s\r\n", &p[COLOR_SAVE_NAME]);
+            //SPRNTF("SetColor(): %p [%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X]\r\n", p, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16], p[17], p[18], p[19], p[20]);
             sync = true;
         }
     }
@@ -131,12 +131,12 @@ public:
             uint8_t s = colors[i * COLOR_RECORD_LEN + COLOR_SAVE_SET];
             if(s & COLOR_SET_ENABLED_MASK)
             {
-                Serial.printf("AddColor(): #%u - skip\r\n", i);
+                SPRNTF("AddColor(): #%u - skip\r\n", i);
                 i++;
             }
             else
             {
-                Serial.printf("AddColor(): #%u is free ...\r\n", i);
+                SPRNTF("AddColor(): #%u is free ...\r\n", i);
                 SetColor(i, r, g, b, name);
                 free_colors--;
                 sync = true;
@@ -154,7 +154,7 @@ public:
         uint8_t s = colors[id * COLOR_RECORD_LEN + COLOR_SAVE_SET];
         if(s & COLOR_SET_ENABLED_MASK)
         {
-            Serial.printf("DelColor(): #%u\r\n", id);
+            SPRNTF("DelColor(): #%u\r\n", id);
             colors[id * COLOR_RECORD_LEN + COLOR_SAVE_SET] = 0;
             free_colors++;
             sync = true;
@@ -179,7 +179,7 @@ public:
         while(color_ptr < MAX_SAVED_COLORS)
         {
             p = &colors[color_ptr * COLOR_RECORD_LEN];
-            Serial.printf("GetNextColor(): %p [%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X] ", p, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16], p[17], p[18], p[19], p[20]);
+            SPRNTF("GetNextColor(): %p [%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X] ", p, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16], p[17], p[18], p[19], p[20]);
             
             char s = p[COLOR_SAVE_SET];
             if(s & COLOR_SET_ENABLED_MASK)
@@ -192,14 +192,14 @@ public:
                 //strcpy(name, (char*)&colors[color_ptr * COLOR_RECORD_LEN + COLOR_SAVE_NAME]);
                 *id = color_ptr;
 
-                Serial.printf("(#%u r:%u g:%u b:%u [%s])\r\n", color_ptr, *r, *g, *b, name);
+                SPRNTF("(#%u r:%u g:%u b:%u [%s])\r\n", color_ptr, *r, *g, *b, name);
 
                 color_ptr++;
                 return true;
             }
             else
             {
-                Serial.printf("(#%u is not set)\r\n", color_ptr);
+                SPRNTF("(#%u is not set)\r\n", color_ptr);
                 color_ptr++;
             }
         }

@@ -55,15 +55,15 @@ public:
         
         in_trans = true;    // unlock updating in case it was locked
 
-        //Serial.printf("Setup: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
-        //Serial.printf("Setup: steps r:%d g:%d, b:%d\r\n", trans_step_r, trans_step_g, trans_step_b);
+        //SPRNTF("Setup: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
+        //SPRNTF("Setup: steps r:%d g:%d, b:%d\r\n", trans_step_r, trans_step_g, trans_step_b);
     }
 
     virtual void Reset(void) 
     {
         current = initial;
         elapsed_time = 0;
-        //Serial.printf("Reset: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
+        //SPRNTF("Reset: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  a_time_ms = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, trans_time);
     }
 
     virtual uint16_t GetCurrent_R(void)
@@ -104,10 +104,10 @@ public:
             if(current.b & 0x10000000) current.b = 0;
             
 
-            //Serial.printf("UPDATE: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  elapsed_time = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, elapsed_time);
+            //SPRNTF("UPDATE: r:%u, g:%u, b:%u -> r:%u, g:%u, b:%u  elapsed_time = %u\r\n", current.r, current.g, current.b, target.r, target.g, target.b, elapsed_time);
             if(elapsed_time > trans_time)   // when transsition is done switch to next in looped list
             {
-                //Serial.printf("elapsed_time switching: elapsed_time = %u > trans_time = %u\r\n", elapsed_time, trans_time);
+                //SPRNTF("elapsed_time switching: elapsed_time = %u > trans_time = %u\r\n", elapsed_time, trans_time);
                 return true;
             }
 

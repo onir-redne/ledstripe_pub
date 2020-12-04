@@ -1,7 +1,18 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#define DEBUG_LOG 1
+//#define DEBUG_LOG 1
+
+#ifdef DEBUG_LOG
+  #define SPRNTF(...)  Serial.printf(__VA_ARGS__)
+  #define SPRNT(a)  Serial.print(a)
+  #define SPRNTLN(a)  Serial.println(a)
+#else
+  #define SPRNTF(...)
+  #define SPRNT(...)
+  #define SPRNTLN(...)
+#endif
+
 
 //////////////////////////////////
 // pins
@@ -22,7 +33,8 @@
 //////////////////////////////////
 // leds
 #define PWM_DUTY_CYCLE          1023
-#define COLOR_RANGE             (PWM_DUTY_CYCLE / 255)
+#define PWM_CUTOFF              10
+#define COLOR_RANGE             ((PWM_DUTY_CYCLE - PWM_CUTOFF) / 255)
 
 //////////////////////////////////
 // saved colors limits
@@ -36,10 +48,10 @@
 // saved transitions
 #define TRANS_SET_SAVE_BYTES        1
 #define TRANS_SET_NAME_LEN          COLOR_NAME_LEN          
-#define MAX_SAVED_TRNAS_SETS        16
+#define MAX_SAVED_TRNAS_SETS        12
 #define MAX_LED_TRANS_TIME          60000
 #define MAX_STRIPE_TRANSITIONS      8
-#define TRANS_STRIPE_SAVE_BYTES     2 * 3 /*color start + color stop*/ +  2 /*time*/ 
+#define TRANS_STRIPE_SAVE_BYTES     (2 * 3 +  2)
 #define SAVED_TRANS_FILE       "/config/transitions.bin"
 
 //////////////////////////////////
@@ -57,7 +69,7 @@
 #define JSON_STRIPE_OFF             "off"
 #define POWER_TIMER_MAX             7201
 #define JSON_SAVED_COLOR_ENTRY      COLOR_NAME_LEN + 12 + COLOR_SAVE_BYTES * 10
-#define JSON_SAVED_TRANS_ENTRY      TRANS_SET_NAME_LEN + (MAX_STRIPE_TRANSITIONS * TRANS_STRIPE_SAVE_BYTES) * 8 + TRANS_SET_SAVE_BYTES * 8
+#define JSON_SAVED_TRANS_ENTRY      612
 
 
 

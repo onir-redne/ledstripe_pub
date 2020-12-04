@@ -42,7 +42,7 @@ public:
             
             analogWriteFreq(a_duty_cycle);
 
-            //Serial.printf("LedStripeCtl: %d, %d, %d, %u\r\n", pin_r, pin_g, pin_b, duty_cycle);
+            //SPRNTF("LedStripeCtl: %d, %d, %d, %u\r\n", pin_r, pin_g, pin_b, duty_cycle);
             base_color = LedStripeState(0, 0, 0, 1);
             peek_color = LedStripeState(0, 0, 0, 1);
             p_color = & base_color; // set current color to pimary one
@@ -61,19 +61,19 @@ public:
     {
         LedStripeTrans* new_tr = transitions;
         LedStripeTrans* prev_tr = nullptr;
-        //Serial.println("AddTransition:");
+        SPRNTLN("AddTransition:");
 
         // do not allow adding same transition twice this would ruin out list
         if(transitions == a_tr)
         {
-           // Serial.println("  - transitions == a_tr SKIP");
+            SPRNTLN("  - transitions == a_tr SKIP");
             return;
         }
 
         // if root is null
         if(!transitions)
         {
-            //Serial.println("  - transitions empty");
+            SPRNTLN("  - transitions empty");
             transitions = a_tr;
             a_tr->on_list = true;
             current_transition = transitions;
@@ -82,21 +82,21 @@ public:
         else
         {
             // find ending
-            //Serial.println("  - looking for last el.");
+           SPRNTLN("  - looking for last el.");
            while(new_tr->next != transitions)
            {
                 new_tr = new_tr->next;
                 if(new_tr == a_tr)
                     return; // if on list do not allow to add.
            }
-            //Serial.printf("  - last el: %p\t\n", new_tr);
+            SPRNTF("  - last el: %p\t\n", new_tr);
             new_tr->next = a_tr; // insert
             a_tr->next = transitions; // set to root
         }
 
-            //Serial.printf(" added %p\r\n", a_tr);
-            //Serial.printf("  - transitions = %p\r\n", transitions);
-            //Serial.printf("  - current_transition = %p\r\n", current_transition);
+            //SPRNTF(" added %p\r\n", a_tr);
+            //SPRNTF("  - transitions = %p\r\n", transitions);
+            //SPRNTF("  - current_transition = %p\r\n", current_transition);
     }
 
     // set static color, and remove any transitions, static color is used when transitions is null
@@ -176,10 +176,10 @@ public:
     {
         for(int i = 0; i < MAX_STRIPE_TRANSITIONS; i++)
         {   
-            //Serial.printf("AddTransition int: checking [%d] %p\r\n", i, &transitions_buffer[i]);
+            SPRNTF("AddTransition int: checking [%d] %p\r\n", i, &transitions_buffer[i]);
             if(!transitions_buffer[i].on_list)
             {
-                //Serial.printf(" - picked up %p\r\n", &transitions_buffer[i]);
+                SPRNTF(" - picked up %p\r\n", &transitions_buffer[i]);
                 transitions_buffer[i].Setup(a_r, a_g, a_b, a_tr, a_tg, a_tb, a_time_ms);
                 AddTransition((LedStripeTrans*)(&transitions_buffer[i]));
                 transitions_buffer[i].on_list = true;
@@ -204,16 +204,26 @@ public:
 
     void ClearTransitions(void)
     {
-        transitions = nullptr;
-        current_transition = nullptr;
-
-        for(LedStripeTransColor trb : transitions_buffer)
+        if(transitions)
         {
-            trb.next = nullptr;
-            trb.on_list = false;
+            transitions = nullptr;
+            current_transition = nullptr;
+            for(int i = 0; i < MAX_STRIPE_TRANSITIONS; i++)
+            {   
+                SPRNTF("ClearTransitions: [%d] %p\r\n", i, &transitions_buffer[i]);
+                transitions_buffer[i].next = nullptr;
+                transitions_buffer[i].on_list = false;
+            }
+
+            // for(LedStripeTransColor trb : transitions_buffer)
+            // {
+            //     trb.next = nullptr;
+            //     trb.on_list = false;
+            // }
+
+            // unlock static color Update
         }
 
-        // unlock static color Update
         color_set_flag = false;
     }
 
@@ -232,16 +242,16 @@ public:
             call_time = current_time;
 
             trans_done = current_transition->Update(call_time_delta);
-            //Serial.printf("[%u|%u|%u] ", current_transition->GetCurrent_R(), current_transition->GetCurrent_G(), current_transition->GetCurrent_B());
+            //SPRNTF("[%u|%u|%u] ", current_transition->GetCurrent_R(), current_transition->GetCurrent_G(), current_transition->GetCurrent_B());
             analogWrite(pin_r, current_transition->GetCurrent_R());
             analogWrite(pin_g, current_transition->GetCurrent_G());
             analogWrite(pin_b, current_transition->GetCurrent_B());
-            //Serial.printf("current_transition: ");
+            //SPRNTF("current_transition: ");
 
             if(trans_done)  // when transition has 0 time this should never happen
             {
                 
-                //Serial.printf(">>>>> switching %p [%u,%u,%u] -> %p [%u,%u,%u]\r\n", current_transition, current_transition->current.GetDuty_R(), current_transition->current.GetDuty_G(), current_transition->current.GetDuty_B(), current_transition->next, current_transition->next->current.GetDuty_R(), current_transition->next->current.GetDuty_G(), current_transition->next->current.GetDuty_B());
+                //SPRNTF(">>>>> switching %p [%u,%u,%u] -> %p [%u,%u,%u]\r\n", current_transition, current_transition->current.GetDuty_R(), current_transition->current.GetDuty_G(), current_transition->current.GetDuty_B(), current_transition->next, current_transition->next->current.GetDuty_R(), current_transition->next->current.GetDuty_G(), current_transition->next->current.GetDuty_B());
                 current_transition = current_transition->next;
                 current_transition->Reset();
             }

@@ -24,7 +24,7 @@ public:
         g = a_g * step_multipler * COLOR_RANGE;
         b = a_b * step_multipler * COLOR_RANGE;
 
-       //Serial.printf("LedStripeState r = %u g = %u, b = %u, step_multipler = %u\r\n", r, g, b, step_multipler);
+       //SPRNTF("LedStripeState r = %u g = %u, b = %u, step_multipler = %u\r\n", r, g, b, step_multipler);
     }
     LedStripeState(const LedStripeState & other) 
     {
@@ -60,17 +60,17 @@ public:
 
     void SetColor_R(uint16_t a_r)
     {
-        r = a_r * step_multipler * COLOR_RANGE;
+        r = (a_r * step_multipler * COLOR_RANGE) + PWM_CUTOFF;
     }
 
     void SetColor_G(uint16_t a_g)
     {
-        g = a_g * step_multipler * COLOR_RANGE;
+        g = (a_g * step_multipler * COLOR_RANGE) + PWM_CUTOFF;
     }
 
     void SetColor_B(uint16_t a_b)
     {
-        b = a_b * step_multipler * COLOR_RANGE;
+        b = (a_b * step_multipler * COLOR_RANGE) + PWM_CUTOFF;
     }
 
     uint16_t GetDuty_R(void)
@@ -90,17 +90,17 @@ public:
 
     uint8_t GetColor_R(void)
     {
-         return (uint16_t)(r / step_multipler / COLOR_RANGE);
+         return (uint16_t)(r / step_multipler / COLOR_RANGE)  - PWM_CUTOFF;
     }
 
     uint8_t GetColor_G(void)
     {
-         return (uint16_t)(g / step_multipler / COLOR_RANGE);
+         return (uint16_t)(g / step_multipler / COLOR_RANGE) - PWM_CUTOFF;
     }
 
     uint8_t GetColor_B(void)
     {
-         return (uint16_t)(b / step_multipler / COLOR_RANGE);
+         return (uint16_t)(b / step_multipler / COLOR_RANGE) - PWM_CUTOFF;
     }
 
 protected:

@@ -31,7 +31,7 @@ public:
         {
             raw_samples[samples_done] = analogRead(adc_pin); // A conversion takes about 1uS on an ESP32
             time_lapse = time_now - time_last;
-            Serial.printf("ADC read_time = %lu\r\n", time_now - time_last);
+            SPRNTF("ADC read_time = %lu\r\n", time_now - time_last);
             time_last = time_now;
             fft_samples[samples_done] = 0;
             samples_done++;
@@ -50,7 +50,7 @@ public:
         
         
 
-        //Serial.printf("SpectrumAnalyser:Update() -> micros: %lu ", micros());
+        //SPRNTF("SpectrumAnalyser:Update() -> micros: %lu ", micros());
         // for (int i = 0; i < samplec_count; i++) 
         // {
         //     time_now = micros() - time_start;
@@ -60,11 +60,11 @@ public:
         //     while (micros() < (time_now + spec_sample_time)) { }
         // }
 
-        // Serial.printf(" :  %lu ", time_start);
+        // SPRNTF(" :  %lu ", time_start);
         // fft.Windowing(raw_samples, samplec_count, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         // fft.Compute(raw_samples, fft_samples, samplec_count, FFT_FORWARD);
         // fft.ComplexToMagnitude(raw_samples, fft_samples, samplec_count);
-        //Serial.printf(" <-  %lu \r\n", micros());
+        //SPRNTF(" <-  %lu \r\n", micros());
     }
 
     uint32_t GetValue4FreqRange(uint16_t a_from_hz, uint16_t a_to_hz)
@@ -73,12 +73,12 @@ public:
         if(a_to_hz <= a_from_hz || a_to_hz - a_from_hz < sigle_freq_range)
             a_to_hz = a_from_hz + sigle_freq_range;
 
-        //Serial.printf("GetValue4FreqRange(): Hz: %u : %u\r\n", a_from_hz, a_to_hz);
+        //SPRNTF("GetValue4FreqRange(): Hz: %u : %u\r\n", a_from_hz, a_to_hz);
 
         for(uint16_t i = a_from_hz / sigle_freq_range; i <= a_to_hz / sigle_freq_range; i++)
             value = ((raw_samples[i] / SPECTRUM_MAX_APMPLITUDE) > value) ? (raw_samples[i] / SPECTRUM_MAX_APMPLITUDE) : value;
 
-        //Serial.printf("GetValue4FreqRange(): value %u\r\n", value);
+        //SPRNTF("GetValue4FreqRange(): value %u\r\n", value);
         return value;
     }
 

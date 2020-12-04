@@ -7,6 +7,8 @@ import subprocess
 ESPLIB_PATH_FSTOOLS = 'tools/mklittlefs/2.5.0-4-fe5bb56/'
 ESPLIB_PATH_HWTOOLS = 'hardware/esp8266/2.7.4/tools/esptool/'
 ESPLIB_PATH = 'C:/Users/onir/AppData/Local/Arduino15/packages/esp8266/'
+WWW_SRC = ''
+
 
 class ExceptionLfsUpd(Exception):
     def __init__(self, message):
@@ -79,7 +81,6 @@ class LittleFSMgr(object):
         # uploadCmd, "--chip", "esp8266", "--port", serialPort, "--baud", uploadSpeed, "write_flash", uploadAddress, imagePath
         # esptool.py --port COM4 --baud 921600 --before default_reset write_flash 0x100000 ledstripe.img
         print('Uploading littleFS image file: {0} -> {1} / {2}'.format(self.output, self.baud, self.port))
-        #process = subprocess.Popen([self.python3 , self.esptool_path, '--port', 'COM4', '--baud', '921600', '--before', 'default_reset', 'write_flash', '0x100000', 'ledstripe.img'])
         process = subprocess.Popen([self.python3 , self.esptool_path, '--port', self.port,'--baud', self.baud, '--before', 'default_reset', '--after', 'hard_reset', 'write_flash',  hex(self.upload_address), self.output])
         if process.wait() != 0:
             raise ExceptionLfsUpd('error crating littleFS')

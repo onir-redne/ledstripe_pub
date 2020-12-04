@@ -30,7 +30,7 @@ window.onload = function() {
     powerManagement.init();
     stripeState.init();
     //window.innerWidth & window.innerHeight
-    colorTransitionEditor.init('svg_trans_editor', 0, 0, window.innerWidth /2, window.innerHeight /2.6, 60000, 8);
+    colorTransitionEditor.init('svg_trans_editor', 0, 0, window.innerWidth /2, window.innerHeight /2.0, 60000, 8);
 
     navigationHelpers.ShowLoadingOverlay();
 
@@ -105,7 +105,7 @@ window.onload = function() {
         }
 
         if (target) 
-        dialog_color_picker.selectedInput = target;
+            dialog_color_picker.selectedInput = target;
         if (!dialog_color_picker.selectedInput) 
             return false;
         
@@ -151,13 +151,13 @@ var navigationHelpers = {
         this.confirmation_dialog_OK = $('#confirmation_dialog_OK');
         
         this.saved_colors_list = $('#saved_colors_list');
-        this.color_peeker_dialog_text = $('#color_peeker_dialog_text');
+        //this.color_peeker_dialog_text = $('#color_peeker_dialog_text');
         this.color_peeker_dialog_name = $('#color_peeker_dialog_name');
         this.color_peeker_dialog = $('#color_peeker_dialog');
         this.color_peeker_dialog_OK = $('#color_peeker_dialog_OK');
 
         this.transition_sets_list = $('#transition_sets_list');
-        this.trans_edit_dialog_text = $('#trans_edit_dialog_text');
+        //this.trans_edit_dialog_text = $('#trans_edit_dialog_text');
         this.trans_edit_dialog_name = $('#trans_edit_dialog_name');
         this.trans_edit_dialog = $('#trans_edit_dialog');
         this.trans_edit_dialog_OK = $('#trans_edit_dialog_OK');
@@ -207,13 +207,13 @@ var navigationHelpers = {
 
     ShowColorPickerDialog : function(src, ok_handler, set_name, message, color_name, color1, color2) {
         this.color_peeker_dialog_OK.unbind('click');
-        if(message) {
+        /*if(message) {
             this.color_peeker_dialog_text.text(message);
             this.color_peeker_dialog_text.show();
         } else {
             this.color_peeker_dialog_text.text("");
             this.color_peeker_dialog_text.hide();
-        }
+        }*/
         if(set_name) {
             this.color_peeker_dialog_name.show();
             this.color_peeker_dialog_name.val(color_name)
@@ -232,11 +232,14 @@ var navigationHelpers = {
             this.selected_color2.css("display","none")
         }
         // set selected input to 1
+        this.selected_color1.val(rgbToHex(color1));
+        var rgbCurrent = color1;
+        var hsvCurrent = rgbToHsv(color2);
+        var baseColorRgb = hsvToRgb(hsvCurrent.h, hsvCurrent.s, 1.0);
+        this.selected_color1.css("background", "-webkit-gradient(linear, left top, left bottom, from(rgba("+rgbCurrent.r+","+rgbCurrent.g+","+rgbCurrent.b+",1)), to(rgba("+baseColorRgb.r+","+baseColorRgb.g+","+baseColorRgb.b+",1)))"); 
+
         dialog_color_picker.selectedInput = document.getElementById('color_picker_color');
-        //dialog_color_picker.rgb = {r: color.r, g: color.g, b: color.b};
-        //resize picker to dialog
         var dialog_width = this.color_peeker_dialog.width();
-        // setup main color picker
         dialog_color_picker.getWheel().width = 30;
         dialog_color_picker.getSvFigCursor().radius = 30;
         dialog_color_picker.getSvFig().radius = 20;
@@ -260,17 +263,18 @@ var navigationHelpers = {
         return this.selected_color2.val();
     },
 
-    ShowTransEditDialog : function(src, ok_handler, set_name, message, set_values_array) {
+    ShowTransEditDialog : function(src, ok_handler, set_name, message, transet_name, set_values_array) {
         this.trans_edit_dialog_OK.unbind('click');
-        if(message) {
+        /*if(message) {
             this.trans_edit_dialog_text.text(message);
             this.trans_edit_dialog_text.show();
         } else {
             this.trans_edit_dialog_text.text('');
             this.trans_edit_dialog_text.hide();
-        }
+        }*/
         if(set_name) {
             this.trans_edit_dialog_name.show();
+            this.trans_edit_dialog_name.val(transet_name)
         } else {
             this.trans_edit_dialog_name.hide();
         }
@@ -281,7 +285,7 @@ var navigationHelpers = {
         } else {
             // empty set with one sample transition
             colorTransitionEditor.setupTransitions([
-                {start: {r: 0, g: 0, b: 0}, stop: {r: 130, g: 220, b: 180}, time: 10000, name: 'sample'}
+                {start: {r: 125, g: 125, b: 125}, stop: {r: 125, g: 125, b: 125}, time: 1000, name: 'sample'}
             ]);
         }
         
@@ -301,36 +305,42 @@ var savedTransitions = {
             for (var i = 0; i < response.sets.length; i++) {
                 var tmp_set = response.sets[i];
                 var tmp_total_time = 0;
-                var cid = tmp_set.id;
+                var tid = tmp_set.id;
                 var name = tmp_set.name;
 
                 for (var j = 0; j < tmp_set.trans.length; j++) {
-                    tmp_total_time += tmp_set_trans[j].time;
+                    tmp_total_time += tmp_set.trans[j].time;
                 }
 
                 var tmp_style_gradient = 'linear-gradient(90deg, ';
                 var last_percents = 0;
+                var set_values = '[';
+                //[{start: {r: 0, g: 0, b: 0}, stop: {r: 130, g: 220, b: 180}, time: 10000, name: 'sample'},]
                 for (var j = 0; j < tmp_set.trans.length; j++) {
-                    var percents = 100 * tmp_set_trans[j].time / tmp_total_time;
+                    var percents = (100 * tmp_set.trans[j].time / tmp_total_time) + last_percents;
                     
-                    tmp_style_gradient += 'rgba(' + tmp_set_trans.r1 + ',' + tmp_set_trans.g1 + ',' + tmp_set_trans.b1 +  ',1) ' + last_percents + '%,' + 'rgba(' + tmp_set_trans.r2 + ',' + tmp_set_trans.g2 + ',' + tmp_set_trans.b2 +  ',1) ' + last_percents + '%';
+                    tmp_style_gradient += 'rgba(' + tmp_set.trans[j].r1 + ',' + tmp_set.trans[j].g1 + ',' + tmp_set.trans[j].b1 + ',1) ' + last_percents + '%,' + 'rgba(' + tmp_set.trans[j].r2 + ',' + tmp_set.trans[j].g2 + ',' + tmp_set.trans[j].b2 + ',1) ' + percents + '%';
                     last_percents = percents;
 
                     if(j < tmp_set.trans.length - 1)
                         tmp_style_gradient += ',';
+
+                    set_values += `{start: {r: ` + tmp_set.trans[j].r1 + `, g: ` + tmp_set.trans[j].g1 + `, b: ` + tmp_set.trans[j].b1 + `}, stop: {r: ` + tmp_set.trans[j].r2 + `, g: ` + tmp_set.trans[j].g2 + `, b: ` + tmp_set.trans[j].b2 + `}, time: ` + tmp_set.trans[j].time + `, name: '` +  name + `'},`;
                 }
                 tmp_style_gradient += ');'
-                
+                set_values += ']';
+
+                //ShowTransEditDialog : src, ok_handler, set_name, message, transet_name, set_values_array
                 new_html += `
                 <div data-type="horizontal" class="ui-grid-c ui-shadow ui-corner-all saved-color-element" style="background: ` + tmp_style_gradient + `">
                     <div class="ui-block-a">
-                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowColorPickerDialog(event.target, function() { savedColors.set(` + cid + `); }, true, 'edit color' ,'` + name + `',{ r:` + c.r + `, g:` + c.g + `, b:` + c.b + `}, null);"></a>
-                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedColors.del(` + cid + `); });"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-edit ui-btn-icon-notext" onclick="navigationHelpers.ShowTransEditDialog(event.target, function() { savedTransitions.set(` + tid + `); }, true, null, '` + name + `', ` + set_values + `);"></a>
+                        <a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext" onclick="navigationHelpers.ShowConfirmationDialog(event.target, function() { savedTransitions.del(` + tid + `); });"></a>
                     </div>
-                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(0, `+ c.r +`,`+ c.g +`,`+ c.b +`);">A</a></div>
-                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(1, `+ c.r +`,`+ c.g +`,`+ c.b +`);">B</a></div>
-                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setColor(2, `+ c.r +`,`+ c.g +`,`+ c.b +`);">C</a></div>
-                    <div class="saved-color-text center-wrapper">` + name + `</div>
+                    <div class="ui-block-b"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setTrans(0, ` + tid + `);">A</a></div>
+                    <div class="ui-block-c"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setTrans(1, ` + tid + `);">B</a></div>
+                    <div class="ui-block-d"><a href="#" class="ui-input-btn ui-btn ui-corner-all ui-icon-action ui-btn-icon-down saved-color-text input-quad-transp" onclick="stripeState.setTrans(2, ` + tid + `);">C</a></div>
+                    <div class="saved-color-text center-wrapper">` + name + ` [` + String((tmp_total_time / 1000).toPrecision(2))+ `]</div>
                 </div>`;
             }
             // when empty list just or free slots left append ADD button
@@ -377,16 +387,16 @@ var savedTransitions = {
         };
 
         if(tid != null) 
-            get_data.push('id', tid);
+            get_data['id'] = tid;
 
         for(var i = 0; i < colorTransitionEditor.transitions.length; i++) {
-            get_data.push('r' + i + '1', colorTransitionEditor.transitions[i].start.r);
-            get_data.push('g' + i + '1', colorTransitionEditor.transitions[i].start.g);
-            get_data.push('b' + i + '1', colorTransitionEditor.transitions[i].start.b);
-            get_data.push('r' + i + '2', colorTransitionEditor.transitions[i].stop.r);
-            get_data.push('g' + i + '2', colorTransitionEditor.transitions[i].stop.g);
-            get_data.push('b' + i + '2', colorTransitionEditor.transitions[i].stop.b);
-            get_data.push('t' + i, colorTransitionEditor.transitions[i].time);
+            get_data['r' + i + '1'] = colorTransitionEditor.transitions[i].start.r;
+            get_data['g' + i + '1'] = colorTransitionEditor.transitions[i].start.g;
+            get_data['b' + i + '1'] = colorTransitionEditor.transitions[i].start.b;
+            get_data['r' + i + '2'] = colorTransitionEditor.transitions[i].stop.r;
+            get_data['g' + i + '2'] = colorTransitionEditor.transitions[i].stop.g;
+            get_data['b' + i + '2'] = colorTransitionEditor.transitions[i].stop.b;
+            get_data['t' + i] = colorTransitionEditor.transitions[i].time;
         }
 
         $.getJSON('/ajax/savedtrans_set', get_data,
@@ -396,10 +406,8 @@ var savedTransitions = {
             });
     },
 
-    delete : function(tid)  {
-        var rgb_color = dialog_color_picker.getCurColorRgb();
-        var name = $('#color_peeker_dialog_name').val();
-        $.getJSON('/ajax/savedtrans_del', {'id' : cid},
+    del : function(tid)  {
+        $.getJSON('/ajax/savedtrans_del', {'id' : tid},
             function(response) {
                 // reload colors on success
                 this.load();
@@ -407,7 +415,7 @@ var savedTransitions = {
     },
 
     sync : function() {
-        $.getJSON('/ajax/savedtrans_sync', {},
+        $.getJSON('/ajax/saved_sync', {},
         function(response) {
             // reload colors on success
             this.load();
@@ -509,7 +517,7 @@ var savedColors = {
     },
 
     sync : function() {
-        $.getJSON('/ajax/savedcolors_sync', {},
+        $.getJSON('/ajax/saved_sync', {},
         function(response) {
             // reload colors on success
             this.load();
@@ -527,6 +535,7 @@ var colorTransitionEditor = {
     svg_ruller: null,
    //svg_shadow_filter: null,
     svg_add_button: null,
+    svg_make_smooth_button: null,
     transitions: [],
     max_transitions: 8,
     max_time: 60000,
@@ -576,6 +585,7 @@ var colorTransitionEditor = {
         this.svg_defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         this.svg.appendChild(this.svg_defs);
         this.svg_add_button = document.getElementById('svg_append_button');
+        this.svg_make_smooth_button = document.getElementById('svg_make_mooth_button');
 
 
         //this.svg.addEventListener('mousedown', this.startDrag);
@@ -629,17 +639,23 @@ var colorTransitionEditor = {
         } else if (evt.target.classList.contains('add-transition')) { 
             if ((evt.type == 'touchstart') && (colorTransitionEditor.transitions.length < colorTransitionEditor.max_transitions)) {
             // add new transition with start color set to preceeding end color
-                var start = {r: 200, g: 200, b: 200};
-                var stop = {r: 200, g: 200, b: 200};
+                var start = {r: 125, g: 125, b: 125};
+                var stop = {r: 125, g: 125, b: 125};
                 if(colorTransitionEditor.transitions.length > 0) {
                     start = colorTransitionEditor.transitions[colorTransitionEditor.transitions.length - 1].stop;
                     stop = start;
                 }
                 //var tr = colorTransitionEditor.getTransitionForSvgObj(colorTransitionEditor.drag_selectedElement);
-                colorTransitionEditor.appdendTransition({start: start, stop: stop, time: 10000, name: ''});
+                colorTransitionEditor.appdendTransition({start: start, stop: stop, time: 1000, name: ''});
                 colorTransitionEditor.refresh();
             }
-        } else if (evt.target.classList.contains('time-edit')) {
+        } else if (evt.target.classList.contains('make-smooth-transition')) { 
+        if ((evt.type == 'touchstart') && (colorTransitionEditor.transitions.length > 1)) {
+        // add new transition with start color set to preceeding end color
+            colorTransitionEditor.transitions[colorTransitionEditor.transitions.length - 1].stop = colorTransitionEditor.transitions[0].start;
+            colorTransitionEditor.refresh();
+        }
+    } else if (evt.target.classList.contains('time-edit')) {
 
             colorTransitionEditor.timeadj_selectedElement = evt.target;
             var tran = colorTransitionEditor.getTransitionForSvgTimeEedit(colorTransitionEditor.timeadj_selectedElement);
@@ -672,7 +688,7 @@ var colorTransitionEditor = {
             if(coord.y > 0 && coord.x > 0) {
                 if(colorTransitionEditor.timeadj_start_pos.y > coord.y) y_diff *= -1;
                 colorTransitionEditor.timeadj_transitionObj.time = colorTransitionEditor.timeadj_start_time + Math.floor(y_diff * colorTransitionEditor.timeadj_precission_modifier);
-                if(colorTransitionEditor.timeadj_transitionObj.time < 100) colorTransitionEditor.timeadj_transitionObj.time = 100;
+                if(colorTransitionEditor.timeadj_transitionObj.time < 50) colorTransitionEditor.timeadj_transitionObj.time = 50;
                 else if(colorTransitionEditor.timeadj_transitionObj.time > colorTransitionEditor.max_time) colorTransitionEditor.timeadj_transitionObj.time = colorTransitionEditor.max_time;
             }
 
@@ -884,6 +900,12 @@ var colorTransitionEditor = {
         } else {
             this.svg_add_button.setAttributeNS(null, 'fill', '#cce7e8');
         }
+        
+        if(this.transitions.length > 1) {
+            this.svg_make_smooth_button.setAttributeNS(null, 'fill', '#107baf');
+        } else {
+            this.svg_make_smooth_button.setAttributeNS(null, 'fill', '#cce7e8');
+        }
     },
 
     /**
@@ -992,7 +1014,7 @@ var colorTransitionEditor = {
         
         obj.svg.info_box_text.setAttributeNS(null, 'x', obj.info_box_position.x);
         obj.svg.info_box_text.setAttributeNS(null, 'y',  obj.info_box_position.y);
-        obj.svg.info_box_text.textContent = String((obj.time / 1000).toPrecision(2))
+        obj.svg.info_box_text.textContent = String((obj.time / 1000).toPrecision(3))
     },
 
     refreshGradient : function(obj) {
@@ -1026,12 +1048,19 @@ var colorTransitionEditor = {
  * enable color peek
  */
 var stripeState = {
+    last_call_tstamp: 0,
+    min_call_interval: 0.05,
 
-    init : function() {
-
+    init : function(min_call_interval = 0.05) {
+        this.last_call_tstamp = 0;
+        this.min_call_interval = min_call_interval * 1000;
     },
 
     setColor : function(id, r, g, b) {
+        var current_tstamp = new Date().getTime();
+        if(this.last_call_tstamp + this.min_call_interval > current_tstamp)
+            return;
+
         $.ajax({
             'url' : '/ajax/setcolor',
             'type' : 'GET',
@@ -1042,9 +1071,14 @@ var stripeState = {
                 'l' : id
             }
         });
+        this.last_call_tstamp = current_tstamp;
     },
 
     setColorPeek : function(r, g, b) {
+        var current_tstamp = new Date().getTime();
+        if(this.last_call_tstamp + this.min_call_interval > current_tstamp)
+            return;
+
         $.ajax({
             'url' : '/ajax/setpeek',
             'type' : 'GET',
@@ -1054,10 +1088,18 @@ var stripeState = {
                 'b' : b
             }
         });
+        this.last_call_tstamp = current_tstamp;
     },
 
-    setTransition : function(id) {
-
+    setTrans : function(id, tid) {
+        $.ajax({
+            'url' : '/ajax/settrans',
+            'type' : 'GET',
+            'data' : {
+                'l' : id,
+                'id' : tid
+            }
+        });
     },
 
     setSpectrum : function(id) {
